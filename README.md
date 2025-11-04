@@ -10,6 +10,55 @@
 - **遙控方式**: 2.4G USB 遙控器（即插即用）
 - **通訊協定**: UART Serial 二進位封包（57600 bps）
 
+## 📖 文件導覽
+
+根據您的角色和需求，請參考以下文件：
+
+### 🔧 硬體組必讀
+- **[ARDUINO_HARDWARE_TESTING.md](ARDUINO_HARDWARE_TESTING.md)** - Arduino 硬體接線與測試指南
+  - 詳細接線對照表（L298N、超聲波、吸塵器）
+  - 逐步測試流程（感測器、馬達、吸塵器）
+  - 常見問題排除（無法上傳、感測器無反應、馬達不轉等）
+  - 適合硬體組完成接線後的功能驗證
+
+### 🚀 快速上手
+- **[QUICK_START.md](QUICK_START.md)** - 快速開始指南
+  - 完整環境設定步驟
+  - 系統啟動與操作說明
+  - 適合第一次使用本系統的使用者
+
+### 🏗️ 系統架構
+- **[SYSTEM_ARCHITECTURE.md](SYSTEM_ARCHITECTURE.md)** - 系統架構文件
+  - 硬體架構設計
+  - 軟體模組說明
+  - Serial 通訊協定
+
+- **[REMOTE_CONTROL_ARCHITECTURE.md](REMOTE_CONTROL_ARCHITECTURE.md)** - 遙控方案設計
+  - USB 遙控器整合方案
+  - 差動驅動演算法
+
+### 🧪 測試與部署
+- **[TESTING_GUIDE.md](TESTING_GUIDE.md)** - 完整測試指南
+  - 單元測試
+  - 整合測試
+  - 系統測試流程
+
+- **[DEPLOYMENT_GUIDE.md](DEPLOYMENT_GUIDE.md)** - 部署指南
+  - 生產環境部署
+  - 開機自動啟動設定
+
+### 📋 軟體工程文件（docs/ 目錄）
+- **[01_SRS_軟體需求規格書.md](docs/01_SRS_軟體需求規格書.md)** - 功能與非功能需求
+- **[02_SA_系統分析.md](docs/02_SA_系統分析.md)** - 系統分析與用例圖
+- **[03_SD_系統設計.md](docs/03_SD_系統設計.md)** - 類別圖與序列圖
+- **[04_ICD_介面規格.md](docs/04_ICD_介面規格.md)** - Serial 通訊協定詳細規格
+- **[05_TDD_測試計畫.md](docs/05_TDD_測試計畫.md)** - 測試計畫與測試案例
+
+### 📊 專案管理
+- **[PROJECT_SUMMARY.md](PROJECT_SUMMARY.md)** - 專案總覽與進度追蹤
+- **[IMPROVEMENTS.md](IMPROVEMENTS.md)** - 未來改進建議
+- **[DEBUG_MAINTENANCE_GUIDE.md](DEBUG_MAINTENANCE_GUIDE.md)** - 除錯與維護指南
+
 ## 🗂️ 專案結構
 
 ```
@@ -83,17 +132,24 @@ arduino-cli compile --fqbn arduino:avr:uno arduino/main/
 arduino-cli upload -p /dev/ttyUSB0 --fqbn arduino:avr:uno arduino/main/
 ```
 
-### 3. 硬體接線
+### 3. 硬體接線與測試
 
-詳細接線請參考 [SYSTEM_ARCHITECTURE.md](SYSTEM_ARCHITECTURE.md)
+**🔧 硬體組請優先閱讀**：[ARDUINO_HARDWARE_TESTING.md](ARDUINO_HARDWARE_TESTING.md)
 
-**關鍵連接**:
+該文件包含：
+- 完整的接線對照表
+- Arduino 獨立測試步驟
+- 常見問題排除方法
+
+**快速參考接線**：
 - **L298N**: ENA→D3, IN1→D5, IN2→D6, ENB→D11, IN3→D9, IN4→D10
 - **左側超聲波**: Trig→D7, Echo→D8
 - **右側超聲波**: Trig→A1, Echo→A2
 - **吸塵器**: D12
 - **Serial**: Arduino TX(D2)→Pi RX(GPIO15), Arduino RX(D4)→Pi TX(GPIO14)
 - **⚠️ 共地**: 所有 GND 必須連接
+
+完整架構說明請參考 [SYSTEM_ARCHITECTURE.md](SYSTEM_ARCHITECTURE.md)
 
 ### 4. 啟動系統
 
@@ -138,7 +194,9 @@ pytest tests/ -v
 
 ### Arduino 測試
 
-參考 [docs/05_TDD_測試計畫.md](docs/05_TDD_測試計畫.md) 的測試程式。
+**硬體接線測試**：參考 [ARDUINO_HARDWARE_TESTING.md](ARDUINO_HARDWARE_TESTING.md)
+
+**軟體測試程式**：參考 [docs/05_TDD_測試計畫.md](docs/05_TDD_測試計畫.md)
 
 ## 📡 Serial 通訊協定
 
@@ -211,15 +269,28 @@ sudo usermod -a -G dialout $USER
 
 ## 📚 參考文件
 
-- **系統架構**: [SYSTEM_ARCHITECTURE.md](SYSTEM_ARCHITECTURE.md)
-- **遙控方案**: [REMOTE_CONTROL_ARCHITECTURE.md](REMOTE_CONTROL_ARCHITECTURE.md)
-- **專案總覽**: [PROJECT_SUMMARY.md](PROJECT_SUMMARY.md)
-- **快速開始**: [QUICK_START.md](QUICK_START.md)
-- **軟體需求**: [docs/01_SRS_軟體需求規格書.md](docs/01_SRS_軟體需求規格書.md)
-- **系統分析**: [docs/02_SA_系統分析.md](docs/02_SA_系統分析.md)
-- **系統設計**: [docs/03_SD_系統設計.md](docs/03_SD_系統設計.md)
-- **介面規格**: [docs/04_ICD_介面規格.md](docs/04_ICD_介面規格.md)
-- **測試計畫**: [docs/05_TDD_測試計畫.md](docs/05_TDD_測試計畫.md)
+### 硬體與測試
+- **[ARDUINO_HARDWARE_TESTING.md](ARDUINO_HARDWARE_TESTING.md)** - Arduino 硬體接線與測試指南 ⭐ 硬體組必讀
+- **[TESTING_GUIDE.md](TESTING_GUIDE.md)** - 完整測試指南
+- **[DEPLOYMENT_GUIDE.md](DEPLOYMENT_GUIDE.md)** - 部署指南
+
+### 快速上手與架構
+- **[QUICK_START.md](QUICK_START.md)** - 快速開始指南
+- **[SYSTEM_ARCHITECTURE.md](SYSTEM_ARCHITECTURE.md)** - 系統架構文件
+- **[REMOTE_CONTROL_ARCHITECTURE.md](REMOTE_CONTROL_ARCHITECTURE.md)** - 遙控方案設計
+
+### 專案管理
+- **[PROJECT_SUMMARY.md](PROJECT_SUMMARY.md)** - 專案總覽與進度追蹤
+- **[IMPROVEMENTS.md](IMPROVEMENTS.md)** - 未來改進建議
+- **[DEBUG_MAINTENANCE_GUIDE.md](DEBUG_MAINTENANCE_GUIDE.md)** - 除錯與維護指南
+- **[INSTALLATION.md](INSTALLATION.md)** - 安裝指南
+
+### 軟體工程文件（docs/ 目錄）
+- **[docs/01_SRS_軟體需求規格書.md](docs/01_SRS_軟體需求規格書.md)** - 軟體需求規格
+- **[docs/02_SA_系統分析.md](docs/02_SA_系統分析.md)** - 系統分析
+- **[docs/03_SD_系統設計.md](docs/03_SD_系統設計.md)** - 系統設計
+- **[docs/04_ICD_介面規格.md](docs/04_ICD_介面規格.md)** - 介面規格
+- **[docs/05_TDD_測試計畫.md](docs/05_TDD_測試計畫.md)** - 測試計畫
 
 ## 🎯 開發階段
 
