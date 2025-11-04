@@ -1,0 +1,17 @@
+{
+  "name": "opencv-crosscompile",
+  "description": "OpenCV cross-compilation for Raspberry Pi with Python support",
+  "base_url": "https://docs.opencv.org/4.x/d3/dd9/tutorial_crosscompile_with_multiarch.html",
+  "selectors": {
+    "main_content": "article",
+    "title": "h1",
+    "code_blocks": "pre code"
+  },
+  "url_patterns": {
+    "include": [],
+    "exclude": []
+  },
+  "categories": {},
+  "rate_limit": 0.5,
+  "max_pages": 50
+}

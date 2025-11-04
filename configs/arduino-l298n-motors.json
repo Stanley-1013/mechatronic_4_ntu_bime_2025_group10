@@ -1,0 +1,17 @@
+{
+  "name": "arduino-l298n-motors",
+  "description": "Arduino L298N motor driver control techniques and implementations",
+  "base_url": "https://forum.arduino.cc/t/l298n-controlling-dc-motors/394751",
+  "selectors": {
+    "main_content": "article",
+    "title": "h1",
+    "code_blocks": "pre code"
+  },
+  "url_patterns": {
+    "include": [],
+    "exclude": []
+  },
+  "categories": {},
+  "rate_limit": 0.5,
+  "max_pages": 50
+}

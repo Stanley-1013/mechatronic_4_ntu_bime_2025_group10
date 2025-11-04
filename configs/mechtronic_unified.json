@@ -1,0 +1,102 @@
+{
+  "name": "mechtronic-robotics",
+  "description": "Comprehensive mechatronics skill for motor control, sensors, computer vision, and autonomous navigation on Arduino, Raspberry Pi, and ESP platforms",
+  "sources": [
+    {
+      "name": "arduino-l298n-forum",
+      "type": "web",
+      "base_url": "https://forum.arduino.cc/t/l298n-controlling-dc-motors/394751",
+      "selectors": {
+        "main_content": ".topic-body",
+        "title": "h1",
+        "code_blocks": "pre code"
+      },
+      "url_patterns": {
+        "include": ["forum.arduino.cc/t/l298n"],
+        "exclude": []
+      },
+      "max_pages": 30,
+      "rate_limit": 0.5
+    },
+    {
+      "name": "arduino-l298n-jumpers",
+      "type": "web",
+      "base_url": "https://forum.arduino.cc/t/l298n-h-bridge-jumpers/965521",
+      "selectors": {
+        "main_content": ".topic-body",
+        "title": "h1",
+        "code_blocks": "pre code"
+      },
+      "url_patterns": {
+        "include": ["forum.arduino.cc/t/l298n-h-bridge-jumpers"],
+        "exclude": []
+      },
+      "max_pages": 20,
+      "rate_limit": 0.5
+    },
+    {
+      "name": "raspberry-pi-camera",
+      "type": "web",
+      "base_url": "https://www.raspberrypi.com/documentation/accessories/camera.html",
+      "selectors": {
+        "main_content": "main",
+        "title": "h1",
+        "code_blocks": "pre code"
+      },
+      "url_patterns": {
+        "include": ["raspberrypi.com/documentation/accessories/camera", "raspberrypi.com/documentation/computers/camera"],
+        "exclude": []
+      },
+      "max_pages": 100,
+      "rate_limit": 0.5
+    },
+    {
+      "name": "opencv-rpi-crosscompile",
+      "type": "web",
+      "base_url": "https://docs.opencv.org/4.x/d3/dd9/tutorial_crosscompile_with_multiarch.html",
+      "selectors": {
+        "main_content": ".document",
+        "title": "h1",
+        "code_blocks": "pre code"
+      },
+      "url_patterns": {
+        "include": ["docs.opencv.org/4.x"],
+        "exclude": []
+      },
+      "max_pages": 50,
+      "rate_limit": 0.5
+    },
+    {
+      "name": "motor-sensor-control-github",
+      "type": "github",
+      "repo": "GiorgioCitterio/Motor-and-Sensor-Control-on-Arduino-Raspberry-Pi-and-ESP",
+      "description": "Multi-platform motor and sensor control examples"
+    },
+    {
+      "name": "serial-motor-demo-ros2",
+      "type": "github",
+      "repo": "joshnewans/serial_motor_demo",
+      "description": "ROS2 motor control with Arduino and Raspberry Pi"
+    },
+    {
+      "name": "diablo-motor-library",
+      "type": "github",
+      "repo": "piborg/diablo",
+      "description": "Python multi-motor control with I2C/PWM"
+    },
+    {
+      "name": "orb-slam2-rpi",
+      "type": "github",
+      "repo": "ss26/ORB-SLAM",
+      "description": "ORB-SLAM2 SLAM for Raspberry Pi navigation"
+    }
+  ],
+  "merge_mode": "claude-enhanced",
+  "categories": {
+    "Motor Control": ["L298N", "DC motors", "PWM", "H-bridge", "encoder", "serial communication"],
+    "Sensor Integration": ["I2C", "sensor control", "multi-sensor", "feedback"],
+    "Computer Vision": ["Picamera2", "OpenCV", "image processing", "camera module"],
+    "Autonomous Navigation": ["SLAM", "ORB-SLAM2", "localization", "mapping"],
+    "Platform Integration": ["Arduino", "Raspberry Pi", "ESP", "ROS2", "Python"]
+  }
+}

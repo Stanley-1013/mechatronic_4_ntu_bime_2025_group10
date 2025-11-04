@@ -1,0 +1,17 @@
+{
+  "name": "raspberry-pi-camera",
+  "description": "Raspberry Pi camera module installation, Picamera2 library, and API documentation",
+  "base_url": "https://www.raspberrypi.com/documentation/accessories/camera.html",
+  "selectors": {
+    "main_content": "article",
+    "title": "h1",
+    "code_blocks": "pre code"
+  },
+  "url_patterns": {
+    "include": [],
+    "exclude": []
+  },
+  "categories": {},
+  "rate_limit": 0.5,
+  "max_pages": 100
+}

@@ -1,0 +1,13 @@
+{
+  "name": "opencv-crosscompile",
+  "total_pages": 1,
+  "base_url": "https://docs.opencv.org/4.x/d3/dd9/tutorial_crosscompile_with_multiarch.html",
+  "llms_txt_detected": false,
+  "llms_txt_variant": null,
+  "pages": [
+    {
+      "title": "What is \"MultiArch\"",
+      "url": "https://docs.opencv.org/4.x/d3/dd9/tutorial_crosscompile_with_multiarch.html"
+    }
+  ]
+}
