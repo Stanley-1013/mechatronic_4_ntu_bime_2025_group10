@@ -16,8 +16,9 @@ JOYSTICK_DEVICE_ID = 0            # pygame joystick 編號
 JOYSTICK_DEADZONE = 0.1           # 搖桿死區 (0.0-1.0)
 
 # 搖桿軸映射（依據實際遙控器調整）
-JOYSTICK_AXIS_LINEAR = 1         # 線性速度軸（前進/後退） - 通常是左搖桿 Y
-JOYSTICK_AXIS_ANGULAR = 0        # 角速度軸（左轉/右轉） - 通常是左搖桿 X
+# 雙搖桿模式：左搖桿控制前後，右搖桿控制左右
+JOYSTICK_AXIS_LINEAR = 1         # 線性速度軸（前進/後退） - 左搖桿上下
+JOYSTICK_AXIS_ANGULAR = 2        # 角速度軸（左轉/右轉） - 右搖桿左右
 JOYSTICK_AXIS_INVERT_LINEAR = True   # Y 軸反轉（向上推為正值）
 JOYSTICK_AXIS_INVERT_ANGULAR = True  # X 軸反轉（修正左右轉方向）
 
