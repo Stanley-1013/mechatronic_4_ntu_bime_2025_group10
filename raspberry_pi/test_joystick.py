@@ -55,8 +55,9 @@ def test_joystick():
                 value = joystick.get_axis(i)
                 bar = "#" * int(abs(value) * 20)
                 direction = "→" if value > 0 else "←"
-                if abs(value) > 0.1:  # 只顯示有明顯變化的軸
-                    print(f"  Axis {i}: {value:+.2f} {direction} {bar}")
+                # 標記有明顯變化的軸
+                marker = "✓" if abs(value) > 0.1 else " "
+                print(f"  {marker} Axis {i}: {value:+.2f} {direction} {bar}")
 
             print()
 

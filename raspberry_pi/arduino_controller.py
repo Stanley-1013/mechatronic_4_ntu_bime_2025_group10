@@ -88,7 +88,8 @@ class ArduinoController:
                 bytesize=serial.EIGHTBITS,
                 parity=serial.PARITY_NONE,
                 stopbits=serial.STOPBITS_ONE,
-                timeout=self.timeout
+                timeout=self.timeout,
+                write_timeout=self.timeout  # 加入寫入逾時，避免阻塞
             )
 
             # 等待 Arduino 重置（開啟 Serial 會觸發 Arduino 重置）

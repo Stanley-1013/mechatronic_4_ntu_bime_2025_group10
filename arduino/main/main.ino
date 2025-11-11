@@ -1,11 +1,11 @@
 /*
  * main.ino - Arduino 主程式
- * 版本: 1.1 (使用 config.h 集中管理設定)
- * 日期: 2025-10-31
+ * 版本: 1.2 (使用硬體 Serial via USB)
+ * 日期: 2025-11-07
  *
  * 機電小車 Arduino 控制程式
  * 功能:
- * - 接收 Raspberry Pi 的馬達指令 (Serial)
+ * - 接收 Raspberry Pi 的馬達指令 (硬體 Serial via USB)
  * - 控制 L298N 驅動雙馬達
  * - 讀取左右超聲波感測器
  * - 控制吸塵器馬達
@@ -14,7 +14,8 @@
  * 參考: 03_SD_系統設計.md, 04_ICD_介面規格.md
  */
 
-#include <SoftwareSerial.h>
+// 不再使用 SoftwareSerial，改用硬體 Serial (USB)
+// #include <SoftwareSerial.h>
 #include "config.h"             // ← 使用 config.h 管理所有設定
 #include "motor_driver.h"
 #include "ultrasonic_sensor.h"
@@ -22,7 +23,8 @@
 #include "serial_protocol.h"
 
 // ==================== 物件初始化 ====================
-SoftwareSerial piSerial(PIN_SERIAL_RX, PIN_SERIAL_TX);
+// 使用硬體 Serial (Serial) 而非 SoftwareSerial
+// SoftwareSerial piSerial(PIN_SERIAL_RX, PIN_SERIAL_TX);
 
 MotorDriver motor(PIN_ENA, PIN_IN1, PIN_IN2, PIN_ENB, PIN_IN3, PIN_IN4);
 UltrasonicSensor leftUltrasonic(PIN_US_LEFT_TRIG, PIN_US_LEFT_ECHO);
@@ -40,20 +42,16 @@ uint16_t rightDistance = 999;
 
 // ==================== Setup ====================
 void setup() {
-    #ifdef DEBUG_SERIAL_ENABLED
-    // 初始化 USB Serial (除錯用)
-    Serial.begin(115200);
-    DEBUG_PRINTLN(F("========================================="));
-    DEBUG_PRINTLN(F(" Arduino Robot Controller v1.1"));
-    DEBUG_PRINTLN(F("========================================="));
-    DEBUG_PRINTLN(F("Initializing..."));
-    #endif
+    // 初始化硬體 Serial (USB，與 Pi 通訊)
+    Serial.begin(9600);  // 改用 9600 baud (匹配 ChatGPT 版本)
 
-    // 初始化 SoftwareSerial (與 Pi 通訊)
-    piSerial.begin(SERIAL_BAUDRATE);
-    DEBUG_PRINT(F("[OK] Serial @ "));
-    DEBUG_PRINT(SERIAL_BAUDRATE);
-    DEBUG_PRINTLN(F(" bps"));
+    Serial.println(F("========================================="));
+    Serial.println(F(" Arduino Robot Controller v1.2"));
+    Serial.println(F("========================================="));
+    Serial.println(F("Initializing..."));
+
+    Serial.print(F("[OK] Serial @ 9600 bps"));
+    Serial.println();
 
     // 初始化馬達驅動
     motor.begin();
@@ -91,13 +89,21 @@ void loop() {
     unsigned long currentTime = millis();
 
     // ========== 1. 接收並處理馬達指令 ==========
-    while (piSerial.available()) {
-        uint8_t byte = piSerial.read();
+    // 防止緩衝區溢出：只處理最多 3 個封包，避免長時間阻塞
+    int packetsProcessed = 0;
+    while (Serial.available() && packetsProcessed < 3) {
+        uint8_t byte = Serial.read();
 
         // 尋找 Header
         if (rxIndex == 0) {
             if (byte == MOTOR_HEADER) {
                 rxBuffer[rxIndex++] = byte;
+            }
+            // 若緩衝區太多資料，清空舊資料（避免處理過時的指令）
+            else if (Serial.available() > 40) {
+                while (Serial.available() > 8) {
+                    Serial.read();  // 丟棄過時資料
+                }
             }
         }
         else {
@@ -107,6 +113,7 @@ void loop() {
             if (rxIndex >= PACKET_SIZE) {
                 processMotorCommand();
                 rxIndex = 0;
+                packetsProcessed++;
             }
         }
     }
@@ -118,11 +125,15 @@ void loop() {
     }
 
     // ========== 3. 更新感測器資料 (10Hz) ==========
+    // 暫時停用超聲波感測器（避免 delay() 和 pulseIn() 阻塞 Serial 接收）
+    // TODO: 改用非阻塞式讀取
+    /*
     if (currentTime - lastSensorTime >= SENSOR_UPDATE_INTERVAL) {
         updateSensors();
         sendSensorData();
         lastSensorTime = currentTime;
     }
+    */
 }
 
 // ==================== 處理馬達指令 ====================
@@ -197,7 +208,7 @@ void sendSensorData() {
     buildSensorPacket(packet, leftDistance, rightDistance, status);
 
     // 發送封包
-    piSerial.write(packet, PACKET_SIZE);
+    Serial.write(packet, PACKET_SIZE);
 
     #ifdef DEBUG_SHOW_SENSORS
     // 除錯輸出 - 顯示感測器讀值

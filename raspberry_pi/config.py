@@ -6,8 +6,8 @@ config.py - 機電小車系統設定檔
 """
 
 # ==================== Serial 通訊設定 ====================
-SERIAL_PORT = '/dev/serial0'      # Raspberry Pi UART (GPIO14/15)
-SERIAL_BAUDRATE = 57600           # 鮑率
+SERIAL_PORT = '/dev/ttyACM1'      # Arduino USB Serial (改成 USB，原本是 /dev/serial0)
+SERIAL_BAUDRATE = 9600            # 鮑率 (改成 9600 匹配 Arduino，原本是 57600)
 SERIAL_TIMEOUT = 0.1              # 讀取逾時 (秒)
 COMMAND_TIMEOUT = 0.2             # 指令逾時 (秒) - 超過此時間未收到指令則停止
 
@@ -19,10 +19,10 @@ JOYSTICK_DEADZONE = 0.1           # 搖桿死區 (0.0-1.0)
 JOYSTICK_AXIS_LINEAR = 1         # 線性速度軸（前進/後退） - 通常是左搖桿 Y
 JOYSTICK_AXIS_ANGULAR = 0        # 角速度軸（左轉/右轉） - 通常是左搖桿 X
 JOYSTICK_AXIS_INVERT_LINEAR = True   # Y 軸反轉（向上推為正值）
-JOYSTICK_AXIS_INVERT_ANGULAR = False # X 軸是否反轉
+JOYSTICK_AXIS_INVERT_ANGULAR = True  # X 軸反轉（修正左右轉方向）
 
 # 按鈕映射
-JOYSTICK_BUTTON_VACUUM = 0       # 吸塵器開關按鈕（通常是 A/X 按鈕）
+JOYSTICK_BUTTON_VACUUM = 0       # 吸塵器開關按鈕（通常是 A/X 按鈕）是A
 JOYSTICK_BUTTON_EMERGENCY_STOP = 1  # 緊急停止按鈕
 
 # ==================== 馬達設定 ====================
@@ -34,7 +34,7 @@ MOTOR_LEFT_SCALE = 1.0            # 左輪速度倍率
 MOTOR_RIGHT_SCALE = 1.0           # 右輪速度倍率
 
 # ==================== 控制迴圈設定 ====================
-CONTROL_LOOP_FREQUENCY = 50       # Hz (主控制迴圈頻率)
+CONTROL_LOOP_FREQUENCY = 20       # Hz (主控制迴圈頻率) - 降低到 20Hz 避免淹沒 Arduino
 CONTROL_LOOP_PERIOD = 1.0 / CONTROL_LOOP_FREQUENCY  # 秒
 
 # ==================== Serial 封包格式 ====================

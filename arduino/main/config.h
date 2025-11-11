@@ -13,8 +13,8 @@
 // ==================== 腳位定義 ====================
 // L298N 馬達驅動
 #define PIN_ENA 3   // 左輪 PWM (必須是 PWM 腳位)
-#define PIN_IN1 5   // 左輪方向 A
-#define PIN_IN2 6   // 左輪方向 B
+#define PIN_IN1 6   // 左輪方向 A (匹配實際硬體)
+#define PIN_IN2 5   // 左輪方向 B (匹配實際硬體)
 #define PIN_ENB 11  // 右輪 PWM (必須是 PWM 腳位)
 #define PIN_IN3 9   // 右輪方向 A
 #define PIN_IN4 10  // 右輪方向 B
@@ -25,8 +25,8 @@
 #define PIN_US_RIGHT_TRIG A1  // 右側 Trig
 #define PIN_US_RIGHT_ECHO A2  // 右側 Echo
 
-// 吸塵器馬達
-#define PIN_VACUUM 12  // 吸塵器控制腳位
+// 吸塵器馬達 (Relay)
+#define PIN_VACUUM A3  // 吸塵器繼電器控制腳位 (改為 A3)
 
 // SoftwareSerial (與 Raspberry Pi 通訊)
 #define PIN_SERIAL_RX 4  // 接收 (連接 Pi TXD GPIO14)
@@ -40,9 +40,9 @@
 // ==================== 除錯設定 ====================
 // 註解以下行可關閉對應的除錯輸出
 
-#define DEBUG_SERIAL_ENABLED   // 啟用 USB Serial 除錯 (115200 bps)
-#define DEBUG_SHOW_COMMANDS    // 顯示收到的馬達指令
-#define DEBUG_SHOW_SENSORS     // 顯示感測器讀值
+// #define DEBUG_SERIAL_ENABLED   // 啟用 USB Serial 除錯 - 關閉以避免阻塞
+// #define DEBUG_SHOW_COMMANDS    // 顯示收到的馬達指令 - 關閉以避免阻塞
+// #define DEBUG_SHOW_SENSORS     // 顯示感測器讀值 - 關閉以避免阻塞
 // #define DEBUG_VERBOSE       // 詳細輸出（顯示原始封包），測試時可啟用
 
 // ==================== 感測器參數 ====================
@@ -59,8 +59,8 @@
     #define DEBUG_PRINT(...) Serial.print(__VA_ARGS__)
     #define DEBUG_PRINTLN(...) Serial.println(__VA_ARGS__)
 #else
-    #define DEBUG_PRINT(x)
-    #define DEBUG_PRINTLN(x)
+    #define DEBUG_PRINT(...)    // 接受任意參數但不做任何事
+    #define DEBUG_PRINTLN(...)  // 接受任意參數但不做任何事
 #endif
 
 #endif // CONFIG_H
