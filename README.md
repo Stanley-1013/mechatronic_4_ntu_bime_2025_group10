@@ -1,18 +1,29 @@
 # 機電小車遙控系統
 
-基於 Raspberry Pi 4 + Arduino Uno 的自主導航機器人系統。
+基於 Raspberry Pi 4 + Arduino Uno 的遙控機器人系統。
+
+**團隊：** NTU BIME 2025 Group 10
+**狀態：** ✅ 期中測試完成 (2025-11-14)
 
 ## 📋 系統概述
 
 - **硬體平台**: Raspberry Pi 4 + Arduino Uno
 - **驅動系統**: L298N 雙馬達差動驅動
-- **感測器**: HC-SR04 超聲波 × 2（左右側）
-- **遙控方式**: 2.4G USB 遙控器（即插即用）
-- **通訊協定**: UART Serial 二進位封包（57600 bps）
+- **遙控方式**: 2.4G USB 遙控器（雙搖桿控制）
+- **影像系統**: USB Camera + MJPG 即時串流
+- **通訊協定**: USB Serial 二進位封包（9600 bps）
+- **其他功能**: 吸塵器繼電器控制
 
 ## 📖 文件導覽
 
 根據您的角色和需求，請參考以下文件：
+
+### 📊 專案報告
+- **[MIDTERM_REPORT.md](MIDTERM_REPORT.md)** - 期中報告
+  - 專案概述與系統架構
+  - 核心演算法說明
+  - 開發過程與問題解決
+  - 測試結果與技術亮點
 
 ### 🔧 硬體組必讀
 - **[ARDUINO_HARDWARE_TESTING.md](ARDUINO_HARDWARE_TESTING.md)** - Arduino 硬體接線與測試指南
