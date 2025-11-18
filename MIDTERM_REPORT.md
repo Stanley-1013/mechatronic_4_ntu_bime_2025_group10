@@ -206,12 +206,12 @@ while (Serial.available() && packetsProcessed < 3) {
 
 **解決方案：** 逐一測試並修正腳位配置
 ```cpp
-// 修正前
+// 修正前（初始設計）
 #define PIN_IN1 5
 #define PIN_IN2 6
 #define PIN_VACUUM 12
 
-// 修正後（匹配實際硬體）
+// 修正後（匹配實際硬體接線）
 #define PIN_IN1 6
 #define PIN_IN2 5
 #define PIN_VACUUM A3

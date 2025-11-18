@@ -336,8 +336,8 @@ nano ~/mechtronic_4/arduino/main/config.h
 
 // 例如：改變馬達驅動 Pin 腳
 #define PIN_ENA 3    // 左輪 PWM
-#define PIN_IN1 5    // 左輪方向 A
-#define PIN_IN2 6    // 左輪方向 B
+#define PIN_IN1 6    // 左輪方向 A (實際硬體)
+#define PIN_IN2 5    // 左輪方向 B (實際硬體)
 #define PIN_ENB 11   // 右輪 PWM
 #define PIN_IN3 9    // 右輪方向 A
 #define PIN_IN4 10   // 右輪方向 B
@@ -349,7 +349,7 @@ nano ~/mechtronic_4/arduino/main/config.h
 #define PIN_US_RIGHT_ECHO A2
 
 // 例如：改變吸塵器 Pin 腳
-#define PIN_VACUUM 12
+#define PIN_VACUUM A3   // 吸塵器繼電器 (實際硬體)
 
 // 例如：改變 Serial Pin 腳
 #define PIN_SERIAL_RX 4

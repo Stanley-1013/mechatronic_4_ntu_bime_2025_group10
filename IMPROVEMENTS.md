@@ -382,8 +382,8 @@ python3 main.py --frequency 30
 // ==================== 腳位定義 ====================
 // L298N 馬達驅動
 #define PIN_ENA 3
-#define PIN_IN1 5
-#define PIN_IN2 6
+#define PIN_IN1 6   // 修正為實際硬體配置
+#define PIN_IN2 5   // 修正為實際硬體配置
 #define PIN_ENB 11
 #define PIN_IN3 9
 #define PIN_IN4 10
@@ -395,7 +395,7 @@ python3 main.py --frequency 30
 #define PIN_US_RIGHT_ECHO A2
 
 // 吸塵器馬達
-#define PIN_VACUUM 12
+#define PIN_VACUUM A3   // 修正為實際硬體配置
 
 // SoftwareSerial
 #define PIN_SERIAL_RX 4

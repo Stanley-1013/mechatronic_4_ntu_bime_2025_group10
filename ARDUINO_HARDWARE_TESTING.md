@@ -42,8 +42,8 @@
 | Arduino 腳位 | L298N 腳位 | 功能說明 |
 |-------------|-----------|---------|
 | D3 (PWM)    | ENA       | 左輪速度控制 |
-| D5          | IN1       | 左輪方向 A |
-| D6          | IN2       | 左輪方向 B |
+| D6          | IN1       | 左輪方向 A |
+| D5          | IN2       | 左輪方向 B |
 | D11 (PWM)   | ENB       | 右輪速度控制 |
 | D9          | IN3       | 右輪方向 A |
 | D10         | IN4       | 右輪方向 B |
@@ -83,16 +83,19 @@
 
 | Arduino 腳位 | 連接對象 | 說明 |
 |-------------|---------|------|
-| D12         | 繼電器或電晶體控制腳位 | 控制吸塵器開關 |
+| A3          | 繼電器控制腳位 | 控制吸塵器開關 |
 | GND         | GND | 共地 |
 
-### 4. Raspberry Pi 通訊（選配，純 Arduino 測試時不需要）
+### 4. Raspberry Pi 通訊
 
-| Arduino 腳位 | Raspberry Pi GPIO | 功能 |
-|-------------|------------------|------|
-| D2 (TX)     | GPIO 15 (RXD)    | Arduino 發送 |
-| D4 (RX)     | GPIO 14 (TXD)    | Arduino 接收 |
-| GND         | GND              | 共地 |
+**實際使用：USB Serial 連接**
+| 連接方式 | 說明 |
+|---------|------|
+| Arduino USB 埠 | 使用 USB 線連接到 Raspberry Pi |
+| 裝置路徑 | `/dev/ttyACM0` 或 `/dev/ttyACM1` |
+| 鮑率 | 9600 bps |
+
+**備註：** 原本設計的 GPIO UART (Pin 2, 4) 已不使用，改用 USB Serial 通訊。
 
 ---
 
