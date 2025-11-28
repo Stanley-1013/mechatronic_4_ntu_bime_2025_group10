@@ -8,13 +8,14 @@
 | 項目 | 內容 |
 |------|------|
 | 專案名稱 | 機電小車遙控系統 |
-| 文件版本 | 1.0 |
+| 文件版本 | 1.1 |
 | 建立日期 | 2025-10-31 |
-| 最後更新 | 2025-10-31 |
+| 最後更新 | 2025-11-28 |
 | 作者 | Mechatronics Team |
 | 硬體平台 | Raspberry Pi 4 + Arduino Uno |
 
 **修訂歷史**：
+- v1.1 (2025-11-28): 更新通訊方式為 USB Serial，新增 ultrasonic_enable flag，超聲波配置改為 FRONT/RIGHT
 - v1.0 (2025-10-31): 初始版本
 
 ---
@@ -37,7 +38,7 @@
 
 | 參數 | 數值 | 說明 |
 |------|------|------|
-| 傳輸速率 | 57600 bps | 鮑率 |
+| 傳輸速率 | 9600 bps | 鮑率 |
 | 資料位元 | 8 bits | 資料長度 |
 | 同位元 | None | 無同位元檢查 |
 | 停止位元 | 1 bit | 停止位元數 |
@@ -48,10 +49,12 @@
 **連接方式**：
 
 ```
-Raspberry Pi GPIO14 (TXD) ──→ Arduino D4 (RX, SoftwareSerial)
-Raspberry Pi GPIO15 (RXD) ←── Arduino D2 (TX, SoftwareSerial)
-Raspberry Pi GND ──────────── Arduino GND (共地)
+Raspberry Pi USB ──────────── Arduino USB (硬體 Serial via USB)
+Raspberry Pi GND ──────────── Arduino GND (共地，透過 USB)
 ```
+
+> **注意**：目前使用 USB Serial 連接，不再使用 GPIO UART。
+> 裝置路徑：`/dev/ttyUSB0` 或 `/dev/ttyACM0`
 
 **⚠️ 注意事項**：
 - Raspberry Pi GPIO 為 3.3V 邏輯，Arduino 為 5V 邏輯
@@ -119,7 +122,7 @@ int16_t left_pwm = (int16_t)(packet[1] | (packet[2] << 8));
 | Bit | 名稱 | 說明 |
 |-----|------|------|
 | 0 | vacuum_motor | 1 = 吸塵器開啟，0 = 關閉 |
-| 1 | reserved | 保留 (預設 0) |
+| 1 | ultrasonic_enable | 1 = 啟用超聲波讀取，0 = 停用 (遙控模式停用以減少延遲) |
 | 2 | reserved | 保留 (預設 0) |
 | 3 | reserved | 保留 (預設 0) |
 | 4 | reserved | 保留 (預設 0) |
@@ -272,8 +275,8 @@ flowchart TD
 | Byte 索引 | 欄位名稱 | 資料型別 | 範圍 | 說明 |
 |-----------|---------|---------|------|------|
 | 0 | Header | uint8 | 0xBB | 封包起始標記 |
-| 1 | Left Dist Low | uint8 | 0x00 ~ 0xFF | 左側距離低位元組 |
-| 2 | Left Dist High | uint8 | 0x00 ~ 0xFF | 左側距離高位元組 |
+| 1 | Front Dist Low | uint8 | 0x00 ~ 0xFF | 前方距離低位元組 |
+| 2 | Front Dist High | uint8 | 0x00 ~ 0xFF | 前方距離高位元組 |
 | 3 | Right Dist Low | uint8 | 0x00 ~ 0xFF | 右側距離低位元組 |
 | 4 | Right Dist High | uint8 | 0x00 ~ 0xFF | 右側距離高位元組 |
 | 5 | Status | uint8 | 0x00 ~ 0xFF | 狀態旗標 |
@@ -308,7 +311,7 @@ left_distance = packet[1] | (packet[2] << 8)
 
 | Bit | 名稱 | 說明 |
 |-----|------|------|
-| 0 | left_sensor_valid | 1 = 左側感測器資料有效，0 = 無效 |
+| 0 | front_sensor_valid | 1 = 前方感測器資料有效，0 = 無效 |
 | 1 | right_sensor_valid | 1 = 右側感測器資料有效，0 = 無效 |
 | 2 | motor_driver_ok | 1 = 馬達驅動正常，0 = 異常 |
 | 3 | vacuum_motor_status | 1 = 吸塵器運作中，0 = 關閉 |
@@ -325,13 +328,13 @@ checksum = packet[1] ^ packet[2] ^ packet[3] ^ packet[4] ^ packet[5];
 
 #### 2.3.3 封包範例
 
-**範例 1：正常測距（左 120cm，右 85cm）**
+**範例 1：正常測距（前方 120cm，右側 85cm）**
 
 | Byte | 欄位 | 數值 (Hex) | 數值 (Dec) | 計算過程 |
 |------|------|-----------|-----------|---------|
 | 0 | Header | 0xBB | 187 | 固定值 |
-| 1 | Left Dist Low | 0x78 | 120 | 120 & 0xFF |
-| 2 | Left Dist High | 0x00 | 0 | (120 >> 8) & 0xFF |
+| 1 | Front Dist Low | 0x78 | 120 | 120 & 0xFF |
+| 2 | Front Dist High | 0x00 | 0 | (120 >> 8) & 0xFF |
 | 3 | Right Dist Low | 0x55 | 85 | 85 & 0xFF |
 | 4 | Right Dist High | 0x00 | 0 | (85 >> 8) & 0xFF |
 | 5 | Status | 0x03 | 3 | bit0=1, bit1=1 (雙側有效) |
@@ -342,7 +345,7 @@ checksum = packet[1] ^ packet[2] ^ packet[3] ^ packet[4] ^ packet[5];
 
 ---
 
-**範例 2：左側超出範圍（左 999，右 50cm）**
+**範例 2：前方超出範圍（前方 999，右側 50cm）**
 
 ```cpp
 // 999 = 0x03E7
@@ -351,11 +354,11 @@ checksum = packet[1] ^ packet[2] ^ packet[3] ^ packet[4] ^ packet[5];
 | Byte | 欄位 | 數值 (Hex) | 數值 (Dec) | 計算過程 |
 |------|------|-----------|-----------|---------|
 | 0 | Header | 0xBB | 187 | 固定值 |
-| 1 | Left Dist Low | 0xE7 | 231 | 999 & 0xFF |
-| 2 | Left Dist High | 0x03 | 3 | (999 >> 8) & 0xFF |
+| 1 | Front Dist Low | 0xE7 | 231 | 999 & 0xFF |
+| 2 | Front Dist High | 0x03 | 3 | (999 >> 8) & 0xFF |
 | 3 | Right Dist Low | 0x32 | 50 | 50 & 0xFF |
 | 4 | Right Dist High | 0x00 | 0 | (50 >> 8) & 0xFF |
-| 5 | Status | 0x02 | 2 | bit0=0 (左無效), bit1=1 (右有效) |
+| 5 | Status | 0x02 | 2 | bit0=0 (前方無效), bit1=1 (右有效) |
 | 6 | Checksum | 0xD4 | 212 | 0xE7^0x03^0x32^0x00^0x02 |
 | 7 | Footer | 0x66 | 102 | 固定值 |
 
@@ -452,8 +455,8 @@ stateDiagram-v2
 | D4 | Serial RX | Pi GPIO14 (TXD) | IN | ✗ | SoftwareSerial 接收 |
 | D5 | L298N IN1 | L298N IN1 | OUT | ✗ | 左輪方向 A |
 | D6 | L298N IN2 | L298N IN2 | OUT | ✗ | 左輪方向 B |
-| D7 | Ultrasonic L Trig | HC-SR04 #1 Trig | OUT | ✗ | 左側超聲波觸發 |
-| D8 | Ultrasonic L Echo | HC-SR04 #1 Echo | IN | ✗ | 左側超聲波回波 |
+| D7 | Ultrasonic F Trig | HC-SR04 #1 Trig | OUT | ✗ | 前方超聲波觸發 |
+| D8 | Ultrasonic F Echo | HC-SR04 #1 Echo | IN | ✗ | 前方超聲波回波 |
 | D9 | L298N IN3 | L298N IN3 | OUT | ✗ | 右輪方向 A |
 | D10 | L298N IN4 | L298N IN4 | OUT | ✗ | 右輪方向 B |
 | D11 | L298N ENB | L298N ENB | OUT | ✓ | 右輪 PWM 速度控制 |
@@ -570,7 +573,7 @@ stateDiagram-v2
 
 ### 3.4 HC-SR04 超聲波感測器接腳
 
-#### 3.4.1 左側感測器 (HC-SR04 #1)
+#### 3.4.1 前方感測器 (HC-SR04 #1)
 
 | HC-SR04 腳位 | Arduino 腳位 | 信號類型 | 說明 |
 |-------------|-------------|---------|------|
