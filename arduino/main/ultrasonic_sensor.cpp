@@ -7,12 +7,10 @@
  */
 
 #include "ultrasonic_sensor.h"
+#include "config.h"  // 使用統一的感測器參數
 
-// 常數定義
+// 常數定義（使用 config.h 的值）
 #define INVALID_DISTANCE 999
-#define MIN_DISTANCE 2
-#define MAX_DISTANCE 400
-#define TIMEOUT_US 30000  // 30ms 逾時
 
 UltrasonicSensor::UltrasonicSensor(uint8_t trig_pin, uint8_t echo_pin)
     : _trig_pin(trig_pin), _echo_pin(echo_pin) {
@@ -32,8 +30,8 @@ uint16_t UltrasonicSensor::getDistance() {
     delayMicroseconds(10);
     digitalWrite(_trig_pin, LOW);
 
-    // 步驟 2: 測量回波持續時間（最長等待 30ms）
-    unsigned long duration = pulseIn(_echo_pin, HIGH, TIMEOUT_US);
+    // 步驟 2: 測量回波持續時間（使用 config.h 定義的逾時）
+    unsigned long duration = pulseIn(_echo_pin, HIGH, ULTRASONIC_TIMEOUT);
 
     // 步驟 3: 計算距離
     // 公式: distance_cm = duration_us * 0.034 / 2
@@ -52,12 +50,12 @@ uint16_t UltrasonicSensor::_validateDistance(uint16_t distance, unsigned long du
     }
 
     // 檢查 2: 距離太近
-    if (distance < MIN_DISTANCE) {
+    if (distance < ULTRASONIC_MIN_DISTANCE) {
         return INVALID_DISTANCE;
     }
 
     // 檢查 3: 距離太遠
-    if (distance > MAX_DISTANCE) {
+    if (distance > ULTRASONIC_MAX_DISTANCE) {
         return INVALID_DISTANCE;
     }
 

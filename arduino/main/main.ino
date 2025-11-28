@@ -7,7 +7,7 @@
  * 功能:
  * - 接收 Raspberry Pi 的馬達指令 (硬體 Serial via USB)
  * - 控制 L298N 驅動雙馬達
- * - 讀取左右超聲波感測器
+ * - 讀取前方與右側超聲波感測器
  * - 控制吸塵器馬達
  * - 回傳感測器資料給 Pi
  *
@@ -27,7 +27,7 @@
 // SoftwareSerial piSerial(PIN_SERIAL_RX, PIN_SERIAL_TX);
 
 MotorDriver motor(PIN_ENA, PIN_IN1, PIN_IN2, PIN_ENB, PIN_IN3, PIN_IN4);
-UltrasonicSensor leftUltrasonic(PIN_US_LEFT_TRIG, PIN_US_LEFT_ECHO);
+UltrasonicSensor frontUltrasonic(PIN_US_FRONT_TRIG, PIN_US_FRONT_ECHO);
 UltrasonicSensor rightUltrasonic(PIN_US_RIGHT_TRIG, PIN_US_RIGHT_ECHO);
 VacuumController vacuum(PIN_VACUUM);
 
@@ -37,8 +37,9 @@ uint8_t rxIndex = 0;
 unsigned long lastCommandTime = 0;
 unsigned long lastSensorTime = 0;
 
-uint16_t leftDistance = 999;
+uint16_t frontDistance = 999;
 uint16_t rightDistance = 999;
+bool ultrasonicEnabled = false;  // 超聲波啟用旗標（由 Pi 控制）
 
 // ==================== Setup ====================
 void setup() {
@@ -58,7 +59,7 @@ void setup() {
     DEBUG_PRINTLN(F("[OK] Motor driver"));
 
     // 初始化超聲波感測器
-    leftUltrasonic.begin();
+    frontUltrasonic.begin();
     rightUltrasonic.begin();
     DEBUG_PRINTLN(F("[OK] Ultrasonic sensors"));
 
@@ -124,29 +125,29 @@ void loop() {
         motor.stop();
     }
 
-    // ========== 3. 更新感測器資料 (10Hz) ==========
-    // 暫時停用超聲波感測器（避免 delay() 和 pulseIn() 阻塞 Serial 接收）
-    // TODO: 改用非阻塞式讀取
-    /*
-    if (currentTime - lastSensorTime >= SENSOR_UPDATE_INTERVAL) {
+    // ========== 3. 更新感測器資料 (僅在啟用時) ==========
+    // 只有當 Pi 啟用超聲波時才讀取，避免遙控模式阻塞
+    if (ultrasonicEnabled && currentTime - lastSensorTime >= 50) {
+        // 使用交替讀取減少阻塞：每次只讀一個感測器，最多阻塞 15ms
         updateSensors();
         sendSensorData();
         lastSensorTime = currentTime;
     }
-    */
 }
 
 // ==================== 處理馬達指令 ====================
 void processMotorCommand() {
     int16_t leftPwm, rightPwm;
     bool vacuumState;
+    bool newUltrasonicEnabled;
 
-    // 解析封包
-    if (parseMotorPacket(rxBuffer, leftPwm, rightPwm, vacuumState)) {
+    // 解析封包 (包含 ultrasonic_enable flag)
+    if (parseMotorPacket(rxBuffer, leftPwm, rightPwm, vacuumState, newUltrasonicEnabled)) {
         // 封包有效
         motor.setLeftMotor(leftPwm);
         motor.setRightMotor(rightPwm);
         vacuum.setState(vacuumState);
+        ultrasonicEnabled = newUltrasonicEnabled;  // 更新超聲波啟用狀態
 
         lastCommandTime = millis();  // 更新最後指令時間
 
@@ -156,7 +157,9 @@ void processMotorCommand() {
         DEBUG_PRINT(F(" R:"));
         DEBUG_PRINT(rightPwm);
         DEBUG_PRINT(F(" V:"));
-        DEBUG_PRINTLN(vacuumState ? F("ON") : F("OFF"));
+        DEBUG_PRINT(vacuumState ? F("ON") : F("OFF"));
+        DEBUG_PRINT(F(" US:"));
+        DEBUG_PRINTLN(ultrasonicEnabled ? F("ON") : F("OFF"));
         #endif
 
         #ifdef DEBUG_VERBOSE
@@ -183,15 +186,18 @@ void processMotorCommand() {
 }
 
 // ==================== 更新感測器資料 ====================
+// 交替讀取：每次 loop 只讀一個感測器，減少阻塞
+bool readFrontNext = true;  // 交替旗標
+
 void updateSensors() {
-    // 讀取左側超聲波
-    leftDistance = leftUltrasonic.getDistance();
-
-    // 等待一下再讀取右側（避免干擾）
-    delay(10);
-
-    // 讀取右側超聲波
-    rightDistance = rightUltrasonic.getDistance();
+    if (readFrontNext) {
+        // 讀取前方超聲波
+        frontDistance = frontUltrasonic.getDistance();
+    } else {
+        // 讀取右側超聲波
+        rightDistance = rightUltrasonic.getDistance();
+    }
+    readFrontNext = !readFrontNext;  // 切換下次讀取目標
 }
 
 // ==================== 發送感測器資料 ====================
@@ -200,20 +206,20 @@ void sendSensorData() {
 
     // 建構狀態旗標
     uint8_t status = 0;
-    if (leftDistance != 999) status |= 0x01;   // bit0: 左側有效
+    if (frontDistance != 999) status |= 0x01;  // bit0: 前方有效
     if (rightDistance != 999) status |= 0x02;  // bit1: 右側有效
     if (vacuum.getState()) status |= 0x08;     // bit3: 吸塵器狀態
 
     // 建構封包
-    buildSensorPacket(packet, leftDistance, rightDistance, status);
+    buildSensorPacket(packet, frontDistance, rightDistance, status);
 
     // 發送封包
     Serial.write(packet, PACKET_SIZE);
 
     #ifdef DEBUG_SHOW_SENSORS
     // 除錯輸出 - 顯示感測器讀值
-    DEBUG_PRINT(F("[SENSOR] L:"));
-    DEBUG_PRINT(leftDistance);
+    DEBUG_PRINT(F("[SENSOR] F:"));
+    DEBUG_PRINT(frontDistance);
     DEBUG_PRINT(F("cm "));
     DEBUG_PRINT((status & 0x01) ? F("✓") : F("✗"));
     DEBUG_PRINT(F(" R:"));

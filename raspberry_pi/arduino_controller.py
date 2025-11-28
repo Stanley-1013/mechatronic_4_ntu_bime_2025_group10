@@ -17,24 +17,24 @@ from differential_drive import MotorCommand
 class SensorData:
     """感測器資料"""
 
-    def __init__(self, left_distance=999, right_distance=999, status=0):
+    def __init__(self, front_distance=999, right_distance=999, status=0):
         """
         初始化感測器資料
 
         Args:
-            left_distance: 左側距離 (cm)
+            front_distance: 前方距離 (cm)
             right_distance: 右側距離 (cm)
             status: 狀態旗標
         """
-        self.left_distance = left_distance
+        self.front_distance = front_distance
         self.right_distance = right_distance
         self.status = status
         self.timestamp = time.time()
 
     @property
-    def left_valid(self):
-        """左側感測器資料是否有效"""
-        return (self.status & 0x01) != 0 and self.left_distance != 999
+    def front_valid(self):
+        """前方感測器資料是否有效"""
+        return (self.status & 0x01) != 0 and self.front_distance != 999
 
     @property
     def right_valid(self):
@@ -42,9 +42,9 @@ class SensorData:
         return (self.status & 0x02) != 0 and self.right_distance != 999
 
     def __repr__(self):
-        left_str = f"{self.left_distance:3d}cm {'✓' if self.left_valid else '✗'}"
+        front_str = f"{self.front_distance:3d}cm {'✓' if self.front_valid else '✗'}"
         right_str = f"{self.right_distance:3d}cm {'✓' if self.right_valid else '✗'}"
-        return f"SensorData(left={left_str}, right={right_str})"
+        return f"SensorData(front={front_str}, right={right_str})"
 
 
 class ArduinoController:
@@ -134,7 +134,7 @@ class ArduinoController:
             Byte 0: Header (0xAA)
             Byte 1-2: Left PWM (int16, little-endian)
             Byte 3-4: Right PWM (int16, little-endian)
-            Byte 5: Flags (bit0=vacuum)
+            Byte 5: Flags (bit0=vacuum, bit1=ultrasonic_enable)
             Byte 6: Checksum (XOR of bytes 1-5)
             Byte 7: Footer (0x55)
 
@@ -161,8 +161,12 @@ class ArduinoController:
         packet[3] = right_pwm & 0xFF
         packet[4] = (right_pwm >> 8) & 0xFF
 
-        # Byte 5: Flags
-        flags = 0x01 if motor_cmd.vacuum else 0x00
+        # Byte 5: Flags (bit0=vacuum, bit1=ultrasonic_enable)
+        flags = 0x00
+        if motor_cmd.vacuum:
+            flags |= 0x01
+        if motor_cmd.ultrasonic_enable:
+            flags |= 0x02
         packet[5] = flags
 
         # Byte 6: Checksum (XOR of bytes 1-5)
@@ -249,12 +253,12 @@ class ArduinoController:
                 print(f"❌ Checksum 錯誤: {packet[6]:02X} (expected {checksum:02X})")
             return None
 
-        # 解析資料
-        left_distance = packet[1] | (packet[2] << 8)
+        # 解析資料 (封包格式: front, right)
+        front_distance = packet[1] | (packet[2] << 8)
         right_distance = packet[3] | (packet[4] << 8)
         status = packet[5]
 
-        return SensorData(left_distance, right_distance, status)
+        return SensorData(front_distance, right_distance, status)
 
     def get_stats(self):
         """取得通訊統計資訊"""

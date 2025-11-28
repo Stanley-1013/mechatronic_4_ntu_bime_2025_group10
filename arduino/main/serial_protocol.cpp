@@ -5,7 +5,7 @@
 
 #include "serial_protocol.h"
 
-bool parseMotorPacket(uint8_t* packet, int16_t& left_pwm, int16_t& right_pwm, bool& vacuum) {
+bool parseMotorPacket(uint8_t* packet, int16_t& left_pwm, int16_t& right_pwm, bool& vacuum, bool& ultrasonic_enable) {
     // 驗證 Header
     if (packet[0] != MOTOR_HEADER) {
         return false;
@@ -28,8 +28,10 @@ bool parseMotorPacket(uint8_t* packet, int16_t& left_pwm, int16_t& right_pwm, bo
     // 解析 Right PWM (int16, little-endian)
     right_pwm = (int16_t)(packet[3] | (packet[4] << 8));
 
-    // 解析 Flags (bit0 = vacuum)
+    // 解析 Flags
+    // bit0 = vacuum, bit1 = ultrasonic_enable
     vacuum = (packet[5] & 0x01) != 0;
+    ultrasonic_enable = (packet[5] & 0x02) != 0;
 
     return true;
 }

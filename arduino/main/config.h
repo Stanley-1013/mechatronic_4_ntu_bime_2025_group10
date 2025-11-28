@@ -19,11 +19,11 @@
 #define PIN_IN3 9   // 右輪方向 A
 #define PIN_IN4 10  // 右輪方向 B
 
-// 超聲波感測器
-#define PIN_US_LEFT_TRIG  7   // 左側 Trig
-#define PIN_US_LEFT_ECHO  8   // 左側 Echo
-#define PIN_US_RIGHT_TRIG A1  // 右側 Trig
-#define PIN_US_RIGHT_ECHO A2  // 右側 Echo
+// 超聲波感測器 (前方 + 右側，用於沿右牆行駛)
+#define PIN_US_FRONT_TRIG  7   // 前方 Trig (偵測前方牆壁，轉彎用)
+#define PIN_US_FRONT_ECHO  8   // 前方 Echo
+#define PIN_US_RIGHT_TRIG  A1  // 右側 Trig (偵測右側牆壁，沿牆用)
+#define PIN_US_RIGHT_ECHO  A2  // 右側 Echo
 
 // 吸塵器馬達 (Relay)
 #define PIN_VACUUM A3  // 吸塵器繼電器控制腳位 (改為 A3)
@@ -48,7 +48,7 @@
 // ==================== 感測器參數 ====================
 #define ULTRASONIC_MIN_DISTANCE 2    // cm (最小有效距離)
 #define ULTRASONIC_MAX_DISTANCE 400  // cm (最大有效距離)
-#define ULTRASONIC_TIMEOUT 30000     // μs (逾時時間 = 30ms)
+#define ULTRASONIC_TIMEOUT 15000     // μs (逾時時間 = 15ms，減少阻塞)
 
 // ==================== 安全參數 ====================
 // #define ENABLE_AUTO_RESET  // 啟用自動重置（10秒無指令時重置 Arduino）

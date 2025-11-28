@@ -24,9 +24,14 @@
  * @param left_pwm 輸出：左輪 PWM (-255 ~ +255)
  * @param right_pwm 輸出：右輪 PWM (-255 ~ +255)
  * @param vacuum 輸出：吸塵器狀態
+ * @param ultrasonic_enable 輸出：超聲波啟用狀態
  * @return true = 封包有效，false = 封包無效
+ *
+ * Flags byte 定義:
+ *   bit0: 吸塵器 (vacuum)
+ *   bit1: 超聲波啟用 (ultrasonic_enable)
  */
-bool parseMotorPacket(uint8_t* packet, int16_t& left_pwm, int16_t& right_pwm, bool& vacuum);
+bool parseMotorPacket(uint8_t* packet, int16_t& left_pwm, int16_t& right_pwm, bool& vacuum, bool& ultrasonic_enable);
 
 /**
  * @brief 建構感測器資料封包（Arduino → Pi）
