@@ -13,90 +13,55 @@
 #define TRIG_PIN A1
 #define ECHO_PIN A2
 
+unsigned long count = 0;
+
 void setup() {
     Serial.begin(9600);
+    while (!Serial) { ; }
 
-    // 等待 Serial 連接
-    while (!Serial) {
-        ;
-    }
-
-    Serial.println("========================================");
-    Serial.println(" A1/A2 Ultrasonic Test");
-    Serial.println("========================================");
-    Serial.print("TRIG_PIN (A1) = ");
-    Serial.println(TRIG_PIN);  // 應該顯示 15
-    Serial.print("ECHO_PIN (A2) = ");
-    Serial.println(ECHO_PIN);  // 應該顯示 16
+    Serial.println(F("A1/A2 Ultrasonic Test"));
+    Serial.println(F("Trig=A1, Echo=A2"));
     Serial.println();
 
-    // 設定腳位
     pinMode(TRIG_PIN, OUTPUT);
     pinMode(ECHO_PIN, INPUT);
     digitalWrite(TRIG_PIN, LOW);
 
-    Serial.println("Testing pin modes...");
-
-    // 測試 Trig 腳位輸出
-    Serial.print("  Trig LOW: ");
-    digitalWrite(TRIG_PIN, LOW);
-    delay(10);
-    Serial.println("OK");
-
-    Serial.print("  Trig HIGH: ");
-    digitalWrite(TRIG_PIN, HIGH);
-    delay(10);
-    Serial.println("OK");
-
-    digitalWrite(TRIG_PIN, LOW);
-
-    // 測試 Echo 腳位輸入
-    Serial.print("  Echo read: ");
+    // 檢查 Echo 初始狀態
     int echoState = digitalRead(ECHO_PIN);
-    Serial.print(echoState);
-    Serial.println(echoState == LOW ? " (LOW - normal)" : " (HIGH - check wiring!)");
+    if (echoState == HIGH) {
+        Serial.println(F("WARNING: Echo is HIGH - check wiring!"));
+    }
 
-    Serial.println("\nStarting distance measurements...\n");
-    delay(1000);
+    Serial.println(F("Count | Distance | Status"));
+    Serial.println(F("------|----------|--------"));
+    delay(500);
 }
 
 void loop() {
-    // 發送觸發脈衝
+    // 觸發
     digitalWrite(TRIG_PIN, LOW);
     delayMicroseconds(2);
     digitalWrite(TRIG_PIN, HIGH);
     delayMicroseconds(10);
     digitalWrite(TRIG_PIN, LOW);
 
-    // 測量回波時間
-    unsigned long startTime = micros();
-    unsigned long duration = pulseIn(ECHO_PIN, HIGH, 30000);  // 30ms 超時
-    unsigned long endTime = micros();
+    // 測量
+    unsigned long duration = pulseIn(ECHO_PIN, HIGH, 30000);
+    int distance = duration * 0.034 / 2;
 
-    // 計算距離
-    float distance = duration * 0.034 / 2;
-
-    // 顯示結果
-    Serial.print("Duration: ");
-    Serial.print(duration);
-    Serial.print(" us");
+    // 覆蓋式單行顯示
+    Serial.print(F("\rDistance: "));
 
     if (duration == 0) {
-        Serial.println(" -> TIMEOUT (no echo received)");
-        Serial.println("    Check: 1) Wiring  2) Sensor power  3) Object in range");
+        Serial.print(F("--- cm (TIMEOUT)   "));
     } else {
-        Serial.print(" -> Distance: ");
-        Serial.print(distance, 1);
-        Serial.print(" cm");
-
-        if (distance < 2) {
-            Serial.println(" (too close)");
-        } else if (distance > 400) {
-            Serial.println(" (too far / invalid)");
-        } else {
-            Serial.println(" (OK)");
-        }
+        // 固定寬度輸出
+        if (distance < 10) Serial.print(F("  "));
+        else if (distance < 100) Serial.print(F(" "));
+        Serial.print(distance);
+        Serial.print(F(" cm            "));
     }
 
-    delay(200);  // 5Hz
+    delay(100);
 }

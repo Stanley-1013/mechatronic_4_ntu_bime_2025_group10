@@ -34,13 +34,12 @@ def main():
     try:
         count = 0
         while True:
+            loop_start = time.time()
+
             # 發送停止指令 (但啟用超聲波)
             vehicle_cmd = VehicleCommand(0, 0, False)
             motor_cmd = drive.convert(vehicle_cmd)
             arduino.send_command(motor_cmd)
-
-            # 短暫等待讓 Arduino 回傳
-            time.sleep(0.1)
 
             # 讀取感測器
             sensor = arduino.receive_sensor_data()
@@ -52,7 +51,11 @@ def main():
             print(f"[{count:4d}] 前方: {sensor.front_distance:3d} cm ({front_status})  |  "
                   f"右側: {sensor.right_distance:3d} cm ({right_status})")
 
-            time.sleep(0.1)  # 約 5Hz 顯示
+            # 維持 20Hz (跟自走一樣)
+            elapsed = time.time() - loop_start
+            sleep_time = 0.05 - elapsed
+            if sleep_time > 0:
+                time.sleep(sleep_time)
 
     except KeyboardInterrupt:
         print("\n\n停止測試...")

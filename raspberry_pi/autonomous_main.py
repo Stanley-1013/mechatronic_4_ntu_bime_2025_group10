@@ -1,11 +1,15 @@
 #!/usr/bin/env python3
 """
 autonomous_main.py - 期末自走競賽主程式
-版本: 1.0
-日期: 2025-11-28
+版本: 2.0 (新增 IMU 角度控制)
+日期: 2025-11-29
 
 自走模式入口程式，使用沿右牆策略完成清掃任務。
 參考: FINAL_AUTONOMOUS_PLAN.md
+
+v2.0 變更:
+- 整合 MPU6050 IMU 提升轉彎精確度
+- 新增 IMU 狀態顯示
 """
 
 import argparse
@@ -39,17 +43,18 @@ class AutonomousController:
     TARGET_TIME = 140     # 目標時間 (秒) - 2:20
     MAX_TIME = 150        # 最大時間 (秒) - 2:30
 
-    def __init__(self, enable_camera=True):
+    def __init__(self, enable_camera=True, use_imu=True):
         """
         初始化自走控制器
 
         Args:
             enable_camera: 是否啟用相機 (紅圓偵測)
+            use_imu: 是否使用 IMU 角度控制 (預設啟用)
         """
         print("=" * 60)
         print(" " * 15 + "期末自走競賽系統")
         print(" " * 15 + "Autonomous Cleaning Robot")
-        print(" " * 22 + "v1.0")
+        print(" " * 18 + "v2.0 (IMU Enhanced)")
         print("=" * 60)
         print()
 
@@ -60,7 +65,8 @@ class AutonomousController:
         self.arduino = ArduinoController()
 
         print("[3/4] 初始化沿牆控制器...")
-        self.wall_follower = WallFollower()
+        self.use_imu = use_imu
+        self.wall_follower = WallFollower(use_imu=use_imu)
 
         print("[4/4] 初始化紅色偵測器...")
         self.enable_camera = enable_camera
@@ -68,9 +74,9 @@ class AutonomousController:
         if enable_camera:
             try:
                 self.red_detector = RedDetector()
-                if not self.red_detector.open():
+                if not self.red_detector.start():  # 使用背景執行緒模式
                     raise RuntimeError("無法開啟攝影機")
-                print("   紅色偵測器已啟用")
+                print("   紅色偵測器已啟用 (背景執行緒)")
             except Exception as e:
                 print(f"   紅色偵測器初始化失敗: {e}")
                 print("   將停用紅圓偵測功能")
@@ -88,6 +94,10 @@ class AutonomousController:
         self.last_turn_time = 0               # 上次轉彎完成時間
         self.red_detection_delay = 1.0        # 轉彎後延遲偵測時間 (秒)
 
+        # IMU 狀態追蹤
+        self.imu_available = False
+        self.last_yaw = 0.0
+
         print("\n初始化完成！\n")
 
     def run(self):
@@ -101,6 +111,7 @@ class AutonomousController:
         print(" 自走模式啟動！")
         print(f" 目標時間: {self.TARGET_TIME}s ({self.TARGET_TIME//60}:{self.TARGET_TIME%60:02d})")
         print(f" 最大時間: {self.MAX_TIME}s ({self.MAX_TIME//60}:{self.MAX_TIME%60:02d})")
+        print(f" IMU 角度控制: {'啟用' if self.use_imu else '停用'}")
         print(" 吸塵器: 常開")
         print(" 按 Ctrl+C 緊急停止")
         print("=" * 60)
@@ -135,10 +146,16 @@ class AutonomousController:
             print(f"\n超時 ({elapsed:.1f}s)！強制返回出口")
             self.state = RobotState.EXIT
 
-        # 2. 讀取感測器
+        # 2. 讀取感測器 (含 IMU)
         sensor_data = self.arduino.receive_sensor_data()
         front_dist = sensor_data.front_distance
         right_dist = sensor_data.right_distance
+        yaw = sensor_data.yaw
+        imu_valid = sensor_data.imu_valid
+
+        # 更新 IMU 狀態
+        self.imu_available = imu_valid
+        self.last_yaw = yaw
 
         # 3. 紅色偵測 (若啟用) - 轉彎後延遲偵測
         red_detected = False
@@ -151,9 +168,10 @@ class AutonomousController:
                     self.red_zone_ahead = True
                     print(f"\n[{self._elapsed_str()}] 偵測到紅色區域！(面積:{area}) 標記避開")
 
-        # 4. 狀態機
+        # 4. 狀態機 (傳入 IMU 資料)
         vehicle_cmd = self._process_state(front_dist, right_dist,
-                                          red_detected, current_time)
+                                          red_detected, current_time,
+                                          yaw, imu_valid)
 
         # 5. 差動驅動轉換
         motor_cmd = self.drive.convert(vehicle_cmd)
@@ -161,10 +179,11 @@ class AutonomousController:
         # 6. 發送指令
         self.arduino.send_command(motor_cmd)
 
-        # 7. 顯示狀態
-        self._display_status(elapsed, front_dist, right_dist, vehicle_cmd)
+        # 7. 顯示狀態 (含 IMU)
+        self._display_status(elapsed, front_dist, right_dist, vehicle_cmd, yaw, imu_valid)
 
-    def _process_state(self, front_dist, right_dist, red_detected, current_time):
+    def _process_state(self, front_dist, right_dist, red_detected, current_time,
+                       yaw=0.0, imu_valid=False):
         """處理狀態機 (吸塵器自走模式常開)"""
 
         if self.state == RobotState.FOLLOW_WALL:
@@ -173,14 +192,14 @@ class AutonomousController:
                 # 檢查是否已經很靠近前方（快到角落了）
                 if front_dist < 60:  # 60cm 內提早轉彎
                     print(f"\n[{self._elapsed_str()}] 紅色區域前方 {front_dist}cm - 提早左轉避開")
-                    self.wall_follower.trigger_turn_left(current_time)
+                    self.wall_follower.trigger_turn_left(current_time, yaw if imu_valid else None)
                     self.corner_count += 1
                     self.red_zone_ahead = False
                     self.last_turn_time = current_time
                     return VehicleCommand(0, -0.7, self.vacuum_on)  # 左轉
 
-            # 沿牆控制
-            cmd = self.wall_follower.update(front_dist, right_dist, current_time)
+            # 沿牆控制 (傳入 IMU 資料)
+            cmd = self.wall_follower.update(front_dist, right_dist, current_time, yaw, imu_valid)
 
             # 檢查是否到達角落 (沿牆控制器進入轉彎狀態)
             if self.wall_follower.get_state() == WallFollower.STATE_TURN_LEFT:
@@ -208,7 +227,7 @@ class AutonomousController:
 
         elif self.state == RobotState.CORNER_SWEEP:
             # 角落掃描中（由 wall_follower 內部狀態機處理）
-            cmd = self.wall_follower.update(front_dist, right_dist, current_time)
+            cmd = self.wall_follower.update(front_dist, right_dist, current_time, yaw, imu_valid)
 
             # 掃描完成後回到沿牆
             if self.wall_follower.get_state() == WallFollower.STATE_FORWARD:
@@ -226,7 +245,7 @@ class AutonomousController:
 
         elif self.state == RobotState.RETURN_TO_WALL:
             # 找回右牆
-            cmd = self.wall_follower.update(front_dist, right_dist, current_time)
+            cmd = self.wall_follower.update(front_dist, right_dist, current_time, yaw, imu_valid)
             if self.wall_follower.get_state() == WallFollower.STATE_FORWARD:
                 print(f"[{self._elapsed_str()}] 找回右牆，繼續沿牆")
                 self.state = RobotState.FOLLOW_WALL
@@ -235,7 +254,7 @@ class AutonomousController:
 
         elif self.state == RobotState.EXIT:
             # 返回出口 (繼續沿牆)
-            cmd = self.wall_follower.update(front_dist, right_dist, current_time)
+            cmd = self.wall_follower.update(front_dist, right_dist, current_time, yaw, imu_valid)
 
             # 檢測是否回到入口 (再次到達角落)
             if self.wall_follower.get_state() == WallFollower.STATE_TURN_LEFT:
@@ -261,7 +280,8 @@ class AutonomousController:
         secs = int(elapsed % 60)
         return f"{mins:02d}:{secs:02d}"
 
-    def _display_status(self, elapsed, front_dist, right_dist, vehicle_cmd):
+    def _display_status(self, elapsed, front_dist, right_dist, vehicle_cmd,
+                        yaw=0.0, imu_valid=False):
         """顯示即時狀態"""
         state_names = {
             RobotState.INIT: "INIT",
@@ -277,11 +297,15 @@ class AutonomousController:
         mins = int(elapsed // 60)
         secs = elapsed % 60
 
+        # IMU 狀態字串
+        imu_str = f"Yaw:{yaw:+6.1f}°" if imu_valid else "IMU:N/A"
+
         status = (
             f"[{mins:02d}:{secs:05.2f}] "
             f"State:{state_names.get(self.state, '?'):5s} "
             f"| Corner:{self.corner_count} "
             f"| F:{front_dist:3d}cm R:{right_dist:3d}cm "
+            f"| {imu_str} "
             f"| Cmd(L:{vehicle_cmd.linear_velocity:+.2f} A:{vehicle_cmd.angular_velocity:+.2f})"
         )
 
@@ -334,12 +358,13 @@ class AutonomousController:
 def parse_args():
     """解析命令列參數"""
     parser = argparse.ArgumentParser(
-        description='期末自走競賽系統',
+        description='期末自走競賽系統 v2.0 (IMU Enhanced)',
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
 範例:
-  python3 autonomous_main.py                # 正常啟動
+  python3 autonomous_main.py                # 正常啟動 (含 IMU)
   python3 autonomous_main.py --no-camera    # 不使用相機
+  python3 autonomous_main.py --no-imu       # 不使用 IMU (時間控制轉彎)
   python3 autonomous_main.py --debug        # 除錯模式
         """
     )
@@ -351,6 +376,12 @@ def parse_args():
     )
 
     parser.add_argument(
+        '--no-imu',
+        action='store_true',
+        help='停用 IMU 角度控制 (使用時間控制轉彎)'
+    )
+
+    parser.add_argument(
         '--debug',
         action='store_true',
         help='啟用除錯模式'
@@ -359,7 +390,7 @@ def parse_args():
     parser.add_argument(
         '--version',
         action='version',
-        version='期末自走競賽系統 v1.0'
+        version='期末自走競賽系統 v2.0 (IMU Enhanced)'
     )
 
     return parser.parse_args()
@@ -375,7 +406,10 @@ def main():
         print("除錯模式已啟用\n")
 
     try:
-        controller = AutonomousController(enable_camera=not args.no_camera)
+        controller = AutonomousController(
+            enable_camera=not args.no_camera,
+            use_imu=not args.no_imu
+        )
         controller.run()
 
     except KeyboardInterrupt:

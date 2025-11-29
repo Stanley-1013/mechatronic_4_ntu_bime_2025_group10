@@ -8,13 +8,14 @@
 | 項目 | 內容 |
 |------|------|
 | 專案名稱 | 機電小車遙控系統 |
-| 文件版本 | 1.1 |
+| 文件版本 | 2.0 |
 | 建立日期 | 2025-10-31 |
-| 最後更新 | 2025-11-28 |
+| 最後更新 | 2025-11-29 |
 | 作者 | Mechatronics Team |
 | 硬體平台 | Raspberry Pi 4 + Arduino Uno |
 
 **修訂歷史**：
+- v2.0 (2025-11-29): 新增 MPU6050 IMU 支援，感測器封包擴展為 12 bytes，新增 Yaw/GyroZ 資料
 - v1.1 (2025-11-28): 更新通訊方式為 USB Serial，新增 ultrasonic_enable flag，超聲波配置改為 FRONT/RIGHT
 - v1.0 (2025-10-31): 初始版本
 
@@ -270,7 +271,7 @@ flowchart TD
 
 ### 2.3 Arduino → Pi 感測器封包 (Sensor Data Packet)
 
-#### 2.3.1 封包格式
+#### 2.3.1 封包格式 (v2.0 - 12 bytes)
 
 | Byte 索引 | 欄位名稱 | 資料型別 | 範圍 | 說明 |
 |-----------|---------|---------|------|------|
@@ -279,11 +280,15 @@ flowchart TD
 | 2 | Front Dist High | uint8 | 0x00 ~ 0xFF | 前方距離高位元組 |
 | 3 | Right Dist Low | uint8 | 0x00 ~ 0xFF | 右側距離低位元組 |
 | 4 | Right Dist High | uint8 | 0x00 ~ 0xFF | 右側距離高位元組 |
-| 5 | Status | uint8 | 0x00 ~ 0xFF | 狀態旗標 |
-| 6 | Checksum | uint8 | 0x00 ~ 0xFF | 校驗和 (XOR) |
-| 7 | Footer | uint8 | 0x66 | 封包結束標記 |
+| 5 | Yaw Low | uint8 | 0x00 ~ 0xFF | Yaw 角度低位元組 (int16, 0.1度) |
+| 6 | Yaw High | uint8 | 0x00 ~ 0xFF | Yaw 角度高位元組 |
+| 7 | GyroZ | int8 | 0x00 ~ 0xFF | Z 軸角速度 (度/秒, -128~127) |
+| 8 | Status | uint8 | 0x00 ~ 0xFF | 狀態旗標 |
+| 9 | Reserved | uint8 | 0x00 | 保留 |
+| 10 | Checksum | uint8 | 0x00 ~ 0xFF | 校驗和 (XOR bytes 1-9) |
+| 11 | Footer | uint8 | 0x66 | 封包結束標記 |
 
-**總計**：8 bytes
+**總計**：12 bytes
 
 #### 2.3.2 資料編碼規則
 
@@ -307,28 +312,57 @@ left_distance = packet[1] | (packet[2] << 8)
 # packet[1]=0xEB, packet[2]=0x00 → 0x00EB → 235
 ```
 
-**Status Byte 定義**：
+**Yaw 角度編碼 (int16, 0.1度單位)**：
+
+```cpp
+// Arduino 編碼
+float yaw_deg = 123.4;  // 度
+int16_t yaw_encoded = (int16_t)(yaw_deg * 10);  // 1234
+packet[5] = yaw_encoded & 0xFF;         // 0xD2
+packet[6] = (yaw_encoded >> 8) & 0xFF;  // 0x04
+```
+
+```python
+# Python 解碼
+yaw_raw = packet[5] | (packet[6] << 8)
+if yaw_raw > 32767:
+    yaw_raw -= 65536  # 處理負數
+yaw_deg = yaw_raw / 10.0  # 123.4
+```
+
+**GyroZ 角速度編碼 (int8, 度/秒)**：
+
+```cpp
+// Arduino 編碼
+float gyroZ = -45.3;  // 度/秒
+int8_t gyroZ_encoded = (int8_t)constrain(gyroZ, -128, 127);  // -45
+packet[7] = (uint8_t)gyroZ_encoded;  // 0xD3
+```
+
+**Status Byte 定義 (v2.0)**：
 
 | Bit | 名稱 | 說明 |
 |-----|------|------|
 | 0 | front_sensor_valid | 1 = 前方感測器資料有效，0 = 無效 |
 | 1 | right_sensor_valid | 1 = 右側感測器資料有效，0 = 無效 |
-| 2 | motor_driver_ok | 1 = 馬達驅動正常，0 = 異常 |
+| 2 | imu_valid | 1 = IMU 資料有效，0 = 無效 (v2.0 新增) |
 | 3 | vacuum_motor_status | 1 = 吸塵器運作中，0 = 關閉 |
 | 4 | reserved | 保留 (預設 0) |
 | 5 | reserved | 保留 (預設 0) |
 | 6 | reserved | 保留 (預設 0) |
 | 7 | reserved | 保留 (預設 0) |
 
-**Checksum 計算**：
+**Checksum 計算 (v2.0)**：
 
 ```cpp
-checksum = packet[1] ^ packet[2] ^ packet[3] ^ packet[4] ^ packet[5];
+// 12-byte 封包：XOR bytes 1-9
+checksum = packet[1] ^ packet[2] ^ packet[3] ^ packet[4] ^ packet[5]
+         ^ packet[6] ^ packet[7] ^ packet[8] ^ packet[9];
 ```
 
-#### 2.3.3 封包範例
+#### 2.3.3 封包範例 (v2.0 - 12 bytes)
 
-**範例 1：正常測距（前方 120cm，右側 85cm）**
+**範例 1：正常測距 + IMU（前方 120cm，右側 85cm，Yaw 45.2°，GyroZ 3°/s）**
 
 | Byte | 欄位 | 數值 (Hex) | 數值 (Dec) | 計算過程 |
 |------|------|-----------|-----------|---------|
@@ -337,18 +371,23 @@ checksum = packet[1] ^ packet[2] ^ packet[3] ^ packet[4] ^ packet[5];
 | 2 | Front Dist High | 0x00 | 0 | (120 >> 8) & 0xFF |
 | 3 | Right Dist Low | 0x55 | 85 | 85 & 0xFF |
 | 4 | Right Dist High | 0x00 | 0 | (85 >> 8) & 0xFF |
-| 5 | Status | 0x03 | 3 | bit0=1, bit1=1 (雙側有效) |
-| 6 | Checksum | 0x2E | 46 | 0x78^0x00^0x55^0x00^0x03 |
-| 7 | Footer | 0x66 | 102 | 固定值 |
+| 5 | Yaw Low | 0xC4 | 196 | 452 & 0xFF (45.2° × 10) |
+| 6 | Yaw High | 0x01 | 1 | (452 >> 8) & 0xFF |
+| 7 | GyroZ | 0x03 | 3 | 3°/s |
+| 8 | Status | 0x07 | 7 | bit0=1, bit1=1, bit2=1 (全有效) |
+| 9 | Reserved | 0x00 | 0 | 保留 |
+| 10 | Checksum | 0xF2 | 242 | XOR bytes 1-9 |
+| 11 | Footer | 0x66 | 102 | 固定值 |
 
-**完整封包**：`BB 78 00 55 00 03 2E 66`
+**完整封包**：`BB 78 00 55 00 C4 01 03 07 00 F2 66`
 
 ---
 
-**範例 2：前方超出範圍（前方 999，右側 50cm）**
+**範例 2：前方超出範圍，IMU 有效（前方 999，右側 50cm，Yaw -30.5°）**
 
 ```cpp
 // 999 = 0x03E7
+// -30.5° × 10 = -305 = 0xFECF (int16 2's complement)
 ```
 
 | Byte | 欄位 | 數值 (Hex) | 數值 (Dec) | 計算過程 |
@@ -358,11 +397,15 @@ checksum = packet[1] ^ packet[2] ^ packet[3] ^ packet[4] ^ packet[5];
 | 2 | Front Dist High | 0x03 | 3 | (999 >> 8) & 0xFF |
 | 3 | Right Dist Low | 0x32 | 50 | 50 & 0xFF |
 | 4 | Right Dist High | 0x00 | 0 | (50 >> 8) & 0xFF |
-| 5 | Status | 0x02 | 2 | bit0=0 (前方無效), bit1=1 (右有效) |
-| 6 | Checksum | 0xD4 | 212 | 0xE7^0x03^0x32^0x00^0x02 |
-| 7 | Footer | 0x66 | 102 | 固定值 |
+| 5 | Yaw Low | 0xCF | 207 | -305 & 0xFF |
+| 6 | Yaw High | 0xFE | 254 | (-305 >> 8) & 0xFF |
+| 7 | GyroZ | 0x00 | 0 | 0°/s (靜止) |
+| 8 | Status | 0x06 | 6 | bit1=1 (右有效), bit2=1 (IMU有效) |
+| 9 | Reserved | 0x00 | 0 | 保留 |
+| 10 | Checksum | 0x0B | 11 | XOR bytes 1-9 |
+| 11 | Footer | 0x66 | 102 | 固定值 |
 
-**完整封包**：`BB E7 03 32 00 02 D4 66`
+**完整封包**：`BB E7 03 32 00 CF FE 00 06 00 0B 66`
 
 ---
 
@@ -470,9 +513,9 @@ stateDiagram-v2
 | A0 | (保留) | - | - | 保留（未來電池電壓偵測） |
 | A1 | Ultrasonic R Trig | HC-SR04 #2 Trig | OUT | 右側超聲波觸發 |
 | A2 | Ultrasonic R Echo | HC-SR04 #2 Echo | IN | 右側超聲波回波 |
-| A3 | (保留) | - | - | 保留 |
-| A4 | (保留) | - | - | 保留（I2C SDA） |
-| A5 | (保留) | - | - | 保留（I2C SCL） |
+| A3 | Vacuum Motor | Relay / MOSFET | OUT | 吸塵器繼電器控制 |
+| A4 | I2C SDA | MPU6050 SDA | I/O | IMU 資料線 (v2.0) |
+| A5 | I2C SCL | MPU6050 SCL | OUT | IMU 時脈線 (v2.0) |
 
 #### 3.1.3 電源腳位
 
@@ -1002,14 +1045,20 @@ void loop() {
 
 | 介面 | 版本 | 變更日期 | 變更說明 |
 |------|------|---------|---------|
+| Serial Protocol | 2.0 | 2025-11-29 | 感測器封包擴展為 12 bytes，新增 IMU 欄位 |
+| Serial Protocol | 1.1 | 2025-11-28 | 新增 ultrasonic_enable flag |
 | Serial Protocol | 1.0 | 2025-10-31 | 初始版本 |
+| Pin Assignment | 2.0 | 2025-11-29 | A3 改為吸塵器，A4/A5 用於 MPU6050 I2C |
 | Pin Assignment | 1.0 | 2025-10-31 | 初始版本 |
 
 ### 8.2 相容性矩陣
 
 | Pi 軟體版本 | Arduino 韌體版本 | Serial 協定版本 | 相容性 |
 |-----------|----------------|---------------|-------|
-| 1.0 | 1.0 | 1.0 | ✅ 完全相容 |
+| 2.0 | 2.0 | 2.0 | ✅ 完全相容 (IMU 支援) |
+| 2.0 | 1.x | 1.x | ❌ 不相容 (封包大小不同) |
+| 1.x | 2.0 | 2.0 | ❌ 不相容 (封包大小不同) |
+| 1.0 | 1.0 | 1.0 | ✅ 完全相容 (無 IMU) |
 
 ### 8.3 未來擴充計畫
 

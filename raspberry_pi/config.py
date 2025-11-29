@@ -7,7 +7,7 @@ config.py - 機電小車系統設定檔
 
 # ==================== Serial 通訊設定 ====================
 SERIAL_PORT = '/dev/ttyACM1'      # Arduino USB Serial (改成 USB，原本是 /dev/serial0)
-SERIAL_BAUDRATE = 9600            # 鮑率 (改成 9600 匹配 Arduino，原本是 57600)
+SERIAL_BAUDRATE = 115200          # 鮑率 (USB Serial 用高速，減少 buffer 塞車)
 SERIAL_TIMEOUT = 0.1              # 讀取逾時 (秒)
 COMMAND_TIMEOUT = 0.2             # 指令逾時 (秒) - 超過此時間未收到指令則停止
 
@@ -44,10 +44,11 @@ PACKET_MOTOR_HEADER = 0xAA
 PACKET_MOTOR_FOOTER = 0x55
 PACKET_MOTOR_SIZE = 8
 
-# Arduino → Pi 感測器封包
+# Arduino → Pi 感測器封包 (v2.0 - 含 IMU)
 PACKET_SENSOR_HEADER = 0xBB
 PACKET_SENSOR_FOOTER = 0x66
-PACKET_SENSOR_SIZE = 8
+PACKET_SENSOR_SIZE = 12  # 擴充為 12 bytes (原 8 bytes)
+PACKET_SENSOR_SIZE_V1 = 8  # 舊版封包大小 (向下相容)
 
 # ==================== 感測器設定 ====================
 SENSOR_UPDATE_FREQUENCY = 10      # Hz (感測器資料更新頻率)
@@ -56,6 +57,10 @@ SENSOR_INVALID_VALUE = 999        # 無效距離值
 # 超聲波距離範圍
 ULTRASONIC_MIN_DISTANCE = 2       # cm
 ULTRASONIC_MAX_DISTANCE = 400     # cm
+
+# ==================== IMU 設定 ====================
+IMU_YAW_TOLERANCE = 5.0           # 度 - 轉彎完成角度容許誤差
+IMU_HEADING_KP = 0.02             # 直線行駛航向修正 P 增益
 
 # ==================== 除錯設定 ====================
 DEBUG_MODE = False                # 除錯模式（顯示詳細訊息）

@@ -28,6 +28,11 @@
 // 吸塵器馬達 (Relay)
 #define PIN_VACUUM A3  // 吸塵器繼電器控制腳位 (改為 A3)
 
+// MPU6050 IMU (I2C)
+// A4 = SDA, A5 = SCL (Arduino Uno 預設 I2C 腳位，無需額外定義)
+#define MPU6050_ENABLED        // 啟用 MPU6050
+#define MPU6050_CALIBRATE_ON_BOOT  // 開機時自動校準
+
 // SoftwareSerial (與 Raspberry Pi 通訊)
 #define PIN_SERIAL_RX 4  // 接收 (連接 Pi TXD GPIO14)
 #define PIN_SERIAL_TX 2  // 發送 (連接 Pi RXD GPIO15)
@@ -49,6 +54,10 @@
 #define ULTRASONIC_MIN_DISTANCE 2    // cm (最小有效距離)
 #define ULTRASONIC_MAX_DISTANCE 400  // cm (最大有效距離)
 #define ULTRASONIC_TIMEOUT 15000     // μs (逾時時間 = 15ms，減少阻塞)
+
+// MPU6050 參數
+#define IMU_UPDATE_INTERVAL 20       // ms (IMU 更新間隔 = 50Hz)
+#define IMU_CALIBRATION_SAMPLES 500  // 校準取樣次數
 
 // ==================== 安全參數 ====================
 // #define ENABLE_AUTO_RESET  // 啟用自動重置（10秒無指令時重置 Arduino）

@@ -1,16 +1,22 @@
 #!/usr/bin/env python3
 """
 red_detector.py - 紅色區域偵測器
-版本: 1.0
-日期: 2025-11-28
+版本: 2.0 (背景執行緒版本)
+日期: 2025-11-29
 
 偵測牆上的紅色圓形標記，用於自走模式避開紅色紙屑區域。
 
+v2.0 變更:
+- 新增背景執行緒模式，避免阻塞主控制迴圈
+- detect() 變成非阻塞，直接回傳最新結果
+
 使用方式:
-    # 作為模組
+    # 作為模組 (背景執行緒)
     from red_detector import RedDetector
     detector = RedDetector()
-    detected, area = detector.detect()
+    detector.start()  # 啟動背景執行緒
+    detected, area = detector.get_result()  # 非阻塞取得結果
+    detector.stop()   # 停止
 
     # 獨立測試 (顯示視窗)
     python3 red_detector.py
@@ -19,6 +25,7 @@ red_detector.py - 紅色區域偵測器
 import cv2
 import numpy as np
 import time
+import threading
 
 
 class RedDetector:
@@ -54,6 +61,13 @@ class RedDetector:
         self.prev_detected = False
         self.last_area = 0
 
+        # 背景執行緒相關
+        self._thread = None
+        self._running = False
+        self._lock = threading.Lock()
+        self._result_detected = False
+        self._result_area = 0
+
     def open(self):
         """開啟攝影機"""
         if self.cap is not None and self.cap.isOpened():
@@ -73,19 +87,87 @@ class RedDetector:
 
     def close(self):
         """關閉攝影機"""
+        self.stop()  # 先停止背景執行緒
         if self.cap is not None:
             self.cap.release()
             self.cap = None
             print("[RedDetector] 攝影機已關閉")
 
+    # ==================== 背景執行緒 API ====================
+
+    def start(self):
+        """啟動背景偵測執行緒"""
+        if self._running:
+            return True
+
+        if not self.open():
+            return False
+
+        self._running = True
+        self._thread = threading.Thread(target=self._detection_loop, daemon=True)
+        self._thread.start()
+        print("[RedDetector] 背景執行緒已啟動")
+        return True
+
+    def stop(self):
+        """停止背景偵測執行緒"""
+        if not self._running:
+            return
+
+        self._running = False
+        if self._thread is not None:
+            self._thread.join(timeout=1.0)
+            self._thread = None
+        print("[RedDetector] 背景執行緒已停止")
+
+    def get_result(self):
+        """
+        非阻塞取得最新偵測結果
+
+        Returns:
+            tuple: (detected: bool, area: int)
+        """
+        with self._lock:
+            return self._result_detected, self._result_area
+
+    def _detection_loop(self):
+        """背景偵測迴圈"""
+        while self._running:
+            detected, area = self._detect_internal()
+
+            # 更新結果 (thread-safe)
+            with self._lock:
+                self._result_detected = detected
+                self._result_area = area
+
+            # 控制偵測頻率 (~15 FPS)
+            time.sleep(0.066)
+
     def detect(self):
         """
         偵測紅色區域
+
+        如果背景執行緒已啟動，直接回傳最新結果 (非阻塞)
+        否則進行同步偵測 (阻塞)
 
         Returns:
             tuple: (detected: bool, max_area: int)
                 - detected: 是否偵測到紅色
                 - max_area: 最大紅色區塊面積 (用於判斷距離)
+        """
+        # 背景模式：直接回傳結果
+        if self._running:
+            return self.get_result()
+
+        # 同步模式：進行偵測
+        return self._detect_internal()
+
+    def _detect_internal(self):
+        """
+        內部偵測實作 (實際的 OpenCV 處理)
+
+        Returns:
+            tuple: (detected: bool, max_area: int)
         """
         if self.cap is None or not self.cap.isOpened():
             if not self.open():

@@ -1,11 +1,15 @@
 #!/usr/bin/env python3
 """
 wall_follower.py - 沿右牆控制器
-版本: 1.0
-日期: 2025-11-28
+版本: 2.0 (新增 IMU 角度控制)
+日期: 2025-11-29
 
 實作沿右牆行駛演算法，使用前方+右側超聲波感測器。
 參考: FINAL_AUTONOMOUS_PLAN.md - 沿右牆策略
+
+v2.0 變更:
+- 新增 IMU 角度控制轉彎 (取代時間計時)
+- 新增直線行駛航向鎖定
 
 場地規格:
 - 紙屑距牆 15cm
@@ -15,6 +19,7 @@ wall_follower.py - 沿右牆控制器
 
 import config
 from differential_drive import VehicleCommand
+from imu_processor import IMUProcessor
 
 
 class WallFollower:
@@ -40,12 +45,21 @@ class WallFollower:
     STATE_SWEEP = "sweep"           # 角落掃描動作
     STATE_FIND_WALL = "find_wall"   # 尋找右牆
 
-    def __init__(self):
-        """初始化沿牆控制器"""
+    def __init__(self, use_imu=True):
+        """
+        初始化沿牆控制器
+
+        Args:
+            use_imu: 是否使用 IMU 角度控制 (預設啟用)
+        """
         self.state = self.STATE_FORWARD
         self.vacuum_on = True  # 預設開啟吸塵器
 
-        # 轉彎計時器
+        # IMU 處理器
+        self.use_imu = use_imu
+        self.imu = IMUProcessor() if use_imu else None
+
+        # 轉彎計時器 (IMU 不可用時的備援)
         self.turn_start_time = None
         self.turn_duration = 0.7  # 轉彎持續時間 (秒) - 需實測調校
 
@@ -61,9 +75,10 @@ class WallFollower:
         print("WallFollower 初始化完成")
         print(f"   目標右側距離: {self.TARGET_RIGHT_DISTANCE} cm")
         print(f"   前方轉彎距離: {self.FRONT_STOP_DISTANCE} cm")
+        print(f"   IMU 角度控制: {'啟用' if use_imu else '停用'}")
 
     def update(self, front_distance: int, right_distance: int,
-               current_time: float) -> VehicleCommand:
+               current_time: float, yaw: float = 0.0, imu_valid: bool = False) -> VehicleCommand:
         """
         根據感測器資料更新控制指令
 
@@ -71,10 +86,16 @@ class WallFollower:
             front_distance: 前方距離 (cm), 999=無效
             right_distance: 右側距離 (cm), 999=無效
             current_time: 當前時間 (time.time())
+            yaw: 當前 Yaw 角度 (度) - v2.0 新增
+            imu_valid: IMU 資料是否有效 - v2.0 新增
 
         Returns:
             VehicleCommand: 車輛控制指令
         """
+        # 更新 IMU 處理器
+        if self.imu:
+            self.imu.update(yaw, imu_valid)
+
         # 處理無效感測器資料
         front_valid = front_distance != 999 and front_distance > 0
         right_valid = right_distance != 999 and right_distance > 0
@@ -82,29 +103,30 @@ class WallFollower:
         # 狀態機邏輯
         if self.state == self.STATE_FORWARD:
             return self._state_forward(front_distance, right_distance,
-                                       front_valid, right_valid, current_time)
+                                       front_valid, right_valid, current_time, yaw, imu_valid)
 
         elif self.state == self.STATE_TURN_LEFT:
             return self._state_turn_left(front_distance, front_valid,
-                                         current_time)
+                                         current_time, yaw, imu_valid)
 
         elif self.state == self.STATE_SWEEP:
             return self._state_sweep(current_time)
 
         elif self.state == self.STATE_FIND_WALL:
             return self._state_find_wall(right_distance, right_valid,
-                                         current_time)
+                                         current_time, yaw, imu_valid)
 
         # 預設停止
         return VehicleCommand(0, 0, self.vacuum_on)
 
     def _state_forward(self, front_dist, right_dist,
-                       front_valid, right_valid, current_time):
+                       front_valid, right_valid, current_time,
+                       yaw=0.0, imu_valid=False):
         """
         直行沿牆狀態
 
         邏輯:
-        1. 前方 < 20cm -> 左轉
+        1. 前方 < 20cm -> 左轉 (使用 IMU 角度控制)
         2. 前方 < 40cm -> 減速
         3. 右側距離修正 (P控制)
         4. 右側無效/太遠 -> 右偏找牆
@@ -117,7 +139,14 @@ class WallFollower:
             # 進入左轉狀態
             self.state = self.STATE_TURN_LEFT
             self.turn_start_time = current_time
-            print(f"[WallFollower] 前方 {front_dist}cm < {self.FRONT_STOP_DISTANCE}cm -> 左轉")
+
+            # 使用 IMU 角度控制轉彎
+            if self.imu and imu_valid:
+                self.imu.start_turn(-90, yaw)  # 左轉 90 度
+                print(f"[WallFollower] 前方 {front_dist}cm < {self.FRONT_STOP_DISTANCE}cm -> 左轉 (IMU 角度控制)")
+            else:
+                print(f"[WallFollower] 前方 {front_dist}cm < {self.FRONT_STOP_DISTANCE}cm -> 左轉 (時間控制)")
+
             return VehicleCommand(0, -self.TURN_ANGULAR_SPEED, self.vacuum_on)
 
         # 2. 前方減速
@@ -141,16 +170,32 @@ class WallFollower:
 
         return VehicleCommand(linear, angular, self.vacuum_on)
 
-    def _state_turn_left(self, front_dist, front_valid, current_time):
+    def _state_turn_left(self, front_dist, front_valid, current_time,
+                         yaw=0.0, imu_valid=False):
         """
         左轉狀態（原地左轉避開前牆）
 
-        結束條件:
+        結束條件 (IMU 模式):
+        1. 達到目標角度 (±5° 容許誤差)
+
+        結束條件 (時間模式 - 備援):
         1. 轉彎時間到
         2. 前方已清空 (且已轉一小段時間)
         """
         elapsed = current_time - self.turn_start_time
 
+        # === IMU 角度控制模式 ===
+        if self.imu and self.imu.is_turn_active() and imu_valid:
+            # 檢查是否達到目標角度
+            if self.imu.is_turn_complete(yaw):
+                self.state = self.STATE_FORWARD
+                print(f"[WallFollower] 左轉完成 (IMU: {yaw:.1f}°) -> 直行")
+                return VehicleCommand(self.BASE_LINEAR_SPEED, 0, self.vacuum_on)
+
+            # 繼續左轉
+            return VehicleCommand(0, -self.TURN_ANGULAR_SPEED, self.vacuum_on)
+
+        # === 時間控制模式 (備援) ===
         # 轉彎完成條件：時間到
         if elapsed > self.turn_duration:
             self.state = self.STATE_FORWARD
@@ -196,7 +241,8 @@ class WallFollower:
             # Phase 2: 左轉準備離開
             return VehicleCommand(0, -0.5, self.vacuum_on)
 
-    def _state_find_wall(self, right_dist, right_valid, current_time):
+    def _state_find_wall(self, right_dist, right_valid, current_time,
+                         yaw=0.0, imu_valid=False):
         """
         尋找右牆狀態 (紅圓迴避後使用)
 
@@ -219,11 +265,23 @@ class WallFollower:
         # 右前方前進 (稍微右偏)
         return VehicleCommand(0.5, 0.2, self.vacuum_on)
 
-    def trigger_turn_left(self, current_time):
-        """手動觸發左轉 (外部呼叫)"""
+    def trigger_turn_left(self, current_time, yaw: float = None):
+        """
+        手動觸發左轉 (外部呼叫)
+
+        Args:
+            current_time: 當前時間
+            yaw: 當前 Yaw 角度 (可選，若提供則使用 IMU 角度控制)
+        """
         self.state = self.STATE_TURN_LEFT
         self.turn_start_time = current_time
-        print("[WallFollower] 手動觸發左轉")
+
+        # 使用 IMU 角度控制
+        if self.imu and yaw is not None:
+            self.imu.start_turn(-90, yaw)
+            print(f"[WallFollower] 手動觸發左轉 (IMU: {yaw:.1f}° -> {yaw-90:.1f}°)")
+        else:
+            print("[WallFollower] 手動觸發左轉 (時間控制)")
 
     def trigger_sweep(self, current_time):
         """觸發角落掃描（外部呼叫）"""
