@@ -674,30 +674,32 @@ if (currentTime - lastSensorTime >= 50) {  // 50ms = 20Hz
 
 ## 八、開發優先順序
 
-### Phase 1: 硬體準備 (Day 1)
-- [ ] 確認超聲波安裝位置（前方 + 右側）
-- [ ] 更新 config.h 命名
-- [ ] 啟用超聲波（交替讀取）
-- [ ] 測試超聲波讀值穩定性
+### Phase 1: 硬體準備 ✅ 已完成
+- [x] 確認超聲波安裝位置（前方 + 右側）
+- [x] 更新 config.h 命名 (LEFT→FRONT)
+- [x] 啟用超聲波（交替讀取，50ms間隔）
+- [x] 新增 ultrasonic_enable flag（遙控不啟用，自走啟用）
+- [ ] 測試超聲波讀值穩定性 (`test_ultrasonic.py`)
 
-### Phase 2: 基礎控制 (Day 2-3)
-- [ ] 實作沿右牆控制 (`WallFollower`)
+### Phase 2: 基礎控制 ✅ 程式已寫
+- [x] 實作沿右牆控制 (`wall_follower.py`)
+- [x] 分離入口 (`remote_main.py` / `autonomous_main.py`)
 - [ ] 測試直線行駛穩定性
 - [ ] 實作時間控制左轉
 - [ ] 調校轉彎時間參數
 
-### Phase 3: 角落掃描 (Day 4)
+### Phase 3: 角落掃描 (待實作)
 - [ ] 實作角落掃描動作
 - [ ] 測試紙屑覆蓋率
 - [ ] 調整掃描時間與範圍
 
-### Phase 4: 紅圓偵測 (Day 5)
-- [ ] 實作紅圓 HSV 偵測
+### Phase 4: 紅圓偵測 ⚠️ 基礎已有
+- [x] 實作紅圓 HSV 偵測 (autonomous_main.py `_check_red_circle`)
 - [ ] 測試偵測距離與準確度
 - [ ] 實作迴避邏輯
 - [ ] 實作找回右牆
 
-### Phase 5: 整合測試 (Day 6-7)
+### Phase 5: 整合測試 (待進行)
 - [ ] 完整路線測試
 - [ ] 計時優化
 - [ ] 極端情況處理

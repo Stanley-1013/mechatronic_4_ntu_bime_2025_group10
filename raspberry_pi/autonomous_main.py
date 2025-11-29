@@ -17,6 +17,7 @@ import config
 from differential_drive import DifferentialDrive, VehicleCommand
 from arduino_controller import ArduinoController
 from wall_follower import WallFollower
+from red_detector import RedDetector
 
 
 class RobotState(Enum):
@@ -61,17 +62,20 @@ class AutonomousController:
         print("[3/4] 初始化沿牆控制器...")
         self.wall_follower = WallFollower()
 
-        print("[4/4] 初始化相機...")
+        print("[4/4] 初始化紅色偵測器...")
         self.enable_camera = enable_camera
-        self.camera = None
         self.red_detector = None
         if enable_camera:
             try:
-                self._init_camera()
+                self.red_detector = RedDetector()
+                if not self.red_detector.open():
+                    raise RuntimeError("無法開啟攝影機")
+                print("   紅色偵測器已啟用")
             except Exception as e:
-                print(f"   相機初始化失敗: {e}")
+                print(f"   紅色偵測器初始化失敗: {e}")
                 print("   將停用紅圓偵測功能")
                 self.enable_camera = False
+                self.red_detector = None
 
         # 狀態
         self.state = RobotState.INIT
@@ -79,31 +83,25 @@ class AutonomousController:
         self.start_time = None
         self.running = False
 
+        # 紅色區域偵測
+        self.red_zone_ahead = False           # 前方是否有紅色區域
+        self.last_turn_time = 0               # 上次轉彎完成時間
+        self.red_detection_delay = 1.0        # 轉彎後延遲偵測時間 (秒)
+
         print("\n初始化完成！\n")
-
-    def _init_camera(self):
-        """初始化相機"""
-        import cv2
-        self.camera = cv2.VideoCapture(0)
-        self.camera.set(cv2.CAP_PROP_FRAME_WIDTH, 320)
-        self.camera.set(cv2.CAP_PROP_FRAME_HEIGHT, 240)
-        self.camera.set(cv2.CAP_PROP_FPS, 15)
-
-        if not self.camera.isOpened():
-            raise RuntimeError("無法開啟相機")
-
-        print("   相機已啟用 (320x240 @ 15fps)")
 
     def run(self):
         """執行自走任務"""
         self.running = True
         self.start_time = time.time()
         self.state = RobotState.FOLLOW_WALL
+        self.vacuum_on = True  # 自走模式吸塵器常開
 
         print("=" * 60)
         print(" 自走模式啟動！")
         print(f" 目標時間: {self.TARGET_TIME}s ({self.TARGET_TIME//60}:{self.TARGET_TIME%60:02d})")
         print(f" 最大時間: {self.MAX_TIME}s ({self.MAX_TIME//60}:{self.MAX_TIME%60:02d})")
+        print(" 吸塵器: 常開")
         print(" 按 Ctrl+C 緊急停止")
         print("=" * 60)
         print()
@@ -142,10 +140,16 @@ class AutonomousController:
         front_dist = sensor_data.front_distance
         right_dist = sensor_data.right_distance
 
-        # 3. 讀取相機 (若啟用)
+        # 3. 紅色偵測 (若啟用) - 轉彎後延遲偵測
         red_detected = False
-        if self.enable_camera and self.camera:
-            red_detected = self._check_red_circle()
+        if self.enable_camera and self.red_detector:
+            # 轉彎後延遲一段時間才啟用紅色偵測，避免一轉過去就觸發
+            time_since_turn = current_time - self.last_turn_time
+            if time_since_turn > self.red_detection_delay:
+                red_detected, area = self.red_detector.detect()
+                if red_detected and not self.red_zone_ahead:
+                    self.red_zone_ahead = True
+                    print(f"\n[{self._elapsed_str()}] 偵測到紅色區域！(面積:{area}) 標記避開")
 
         # 4. 狀態機
         vehicle_cmd = self._process_state(front_dist, right_dist,
@@ -161,14 +165,19 @@ class AutonomousController:
         self._display_status(elapsed, front_dist, right_dist, vehicle_cmd)
 
     def _process_state(self, front_dist, right_dist, red_detected, current_time):
-        """處理狀態機"""
+        """處理狀態機 (吸塵器自走模式常開)"""
 
         if self.state == RobotState.FOLLOW_WALL:
-            # 檢查紅圓
-            if red_detected:
-                print(f"\n[{self._elapsed_str()}] 偵測到紅圓！迴避中...")
-                self.state = RobotState.AVOID_RED
-                return VehicleCommand(0, 0, True)
+            # 偵測到紅色且尚未到角落 → 提早左轉離開，避免靠近紅色紙屑
+            if self.red_zone_ahead and self.wall_follower.get_state() == WallFollower.STATE_FORWARD:
+                # 檢查是否已經很靠近前方（快到角落了）
+                if front_dist < 60:  # 60cm 內提早轉彎
+                    print(f"\n[{self._elapsed_str()}] 紅色區域前方 {front_dist}cm - 提早左轉避開")
+                    self.wall_follower.trigger_turn_left(current_time)
+                    self.corner_count += 1
+                    self.red_zone_ahead = False
+                    self.last_turn_time = current_time
+                    return VehicleCommand(0, -0.7, self.vacuum_on)  # 左轉
 
             # 沿牆控制
             cmd = self.wall_follower.update(front_dist, right_dist, current_time)
@@ -178,18 +187,42 @@ class AutonomousController:
                 self.corner_count += 1
                 print(f"\n[{self._elapsed_str()}] 到達角落 #{self.corner_count}")
 
+                # 判斷是否為紅色區域角落
+                if self.red_zone_ahead:
+                    # 紅色區域：跳過角落掃描，直接轉彎離開
+                    print(f"[{self._elapsed_str()}] 紅色區域角落 - 跳過掃描，直接轉彎")
+                    self.red_zone_ahead = False  # 重置標記
+                    self.last_turn_time = current_time
+                    # 保持 STATE_TURN_LEFT，不觸發 SWEEP
+                else:
+                    # 正常角落：執行角落掃描確保吸到紙屑
+                    print(f"[{self._elapsed_str()}] 正常角落 - 執行角落掃描")
+                    self.wall_follower.trigger_sweep(current_time)
+                    self.state = RobotState.CORNER_SWEEP
+
                 if self.corner_count >= 4:
                     print(f"[{self._elapsed_str()}] 繞完一圈，準備離開")
                     self.state = RobotState.EXIT
 
             return cmd
 
+        elif self.state == RobotState.CORNER_SWEEP:
+            # 角落掃描中（由 wall_follower 內部狀態機處理）
+            cmd = self.wall_follower.update(front_dist, right_dist, current_time)
+
+            # 掃描完成後回到沿牆
+            if self.wall_follower.get_state() == WallFollower.STATE_FORWARD:
+                print(f"[{self._elapsed_str()}] 角落掃描完成，繼續沿牆")
+                self.state = RobotState.FOLLOW_WALL
+                self.last_turn_time = current_time  # 記錄轉彎完成時間
+
+            return cmd
+
         elif self.state == RobotState.AVOID_RED:
-            # 紅圓迴避：左轉
-            # TODO: 實作更完整的迴避邏輯
+            # 紅圓迴避：左轉（備用，主要靠角落判斷避開）
             self.wall_follower.trigger_find_wall(current_time)
             self.state = RobotState.RETURN_TO_WALL
-            return VehicleCommand(0, -0.6, True)  # 左轉
+            return VehicleCommand(0, -0.6, self.vacuum_on)  # 左轉
 
         elif self.state == RobotState.RETURN_TO_WALL:
             # 找回右牆
@@ -197,6 +230,7 @@ class AutonomousController:
             if self.wall_follower.get_state() == WallFollower.STATE_FORWARD:
                 print(f"[{self._elapsed_str()}] 找回右牆，繼續沿牆")
                 self.state = RobotState.FOLLOW_WALL
+                self.last_turn_time = current_time  # 記錄轉彎完成時間
             return cmd
 
         elif self.state == RobotState.EXIT:
@@ -206,46 +240,17 @@ class AutonomousController:
             # 檢測是否回到入口 (再次到達角落)
             if self.wall_follower.get_state() == WallFollower.STATE_TURN_LEFT:
                 self.corner_count += 1
+                self.last_turn_time = current_time  # 記錄轉彎時間
                 if self.corner_count >= 5:
                     print(f"\n[{self._elapsed_str()}] 回到入口！任務完成")
                     self.state = RobotState.DONE
+                    self.vacuum_on = False  # 任務完成才關閉吸塵器
                     return VehicleCommand(0, 0, False)
 
             return cmd
 
-        # 預設停止
-        return VehicleCommand(0, 0, True)
-
-    def _check_red_circle(self):
-        """檢查紅圓 (簡化版)"""
-        if not self.camera:
-            return False
-
-        import cv2
-        import numpy as np
-
-        ret, frame = self.camera.read()
-        if not ret:
-            return False
-
-        # 轉換到 HSV
-        hsv = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
-
-        # 紅色範圍 (兩段)
-        red_lower1 = np.array([0, 120, 70])
-        red_upper1 = np.array([10, 255, 255])
-        red_lower2 = np.array([170, 120, 70])
-        red_upper2 = np.array([180, 255, 255])
-
-        mask1 = cv2.inRange(hsv, red_lower1, red_upper1)
-        mask2 = cv2.inRange(hsv, red_lower2, red_upper2)
-        red_mask = mask1 | mask2
-
-        # 計算紅色比例
-        red_ratio = cv2.countNonZero(red_mask) / (frame.shape[0] * frame.shape[1])
-
-        # 閾值 3%
-        return red_ratio > 0.03
+        # 預設停止 (但吸塵器保持開啟)
+        return VehicleCommand(0, 0, self.vacuum_on)
 
     def _elapsed_str(self):
         """格式化已過時間"""
@@ -293,9 +298,9 @@ class AutonomousController:
         self.arduino.send_command(motor_cmd)
         time.sleep(0.1)
 
-        # 關閉相機
-        if self.camera:
-            self.camera.release()
+        # 關閉紅色偵測器
+        if self.red_detector:
+            self.red_detector.close()
 
         # 顯示結果
         if self.start_time:

@@ -52,7 +52,7 @@ class WallFollower:
         # 角落掃描
         self.sweep_start_time = None
         self.sweep_phase = 0
-        self.sweep_duration = 15.0  # 角落掃描時間 (秒)
+        self.sweep_duration = 5.0  # 角落掃描時間 (秒) - 縮短以節省比賽時間
 
         # 找牆計時
         self.find_wall_start_time = None
@@ -168,15 +168,12 @@ class WallFollower:
 
     def _state_sweep(self, current_time):
         """
-        角落掃描狀態
+        角落掃描狀態 - 簡化版本 (約5秒)
 
         動作序列:
-        Phase 0: 小幅前進 (2s)
-        Phase 1: 右轉 (1.5s)
-        Phase 2: 小幅前進 (1.5s)
-        Phase 3: 左轉 (1.5s)
-        Phase 4: 小幅後退 (1.5s)
-        Phase 5+: 左右擺動 (剩餘時間)
+        Phase 0: 小幅前進靠近角落 (1.5s)
+        Phase 1: 左右擺動清掃 (2.5s)
+        Phase 2: 左轉準備離開 (1s)
         """
         elapsed = current_time - self.sweep_start_time
 
@@ -187,26 +184,17 @@ class WallFollower:
             return VehicleCommand(0.4, 0, self.vacuum_on)
 
         # 動作序列
-        if elapsed < 2.0:
-            # Phase 0: 小幅前進
-            return VehicleCommand(0.35, 0, self.vacuum_on)
-        elif elapsed < 3.5:
-            # Phase 1: 右轉
-            return VehicleCommand(0.15, 0.5, self.vacuum_on)
-        elif elapsed < 5.0:
-            # Phase 2: 小幅前進
-            return VehicleCommand(0.35, 0, self.vacuum_on)
-        elif elapsed < 6.5:
-            # Phase 3: 左轉
-            return VehicleCommand(0.15, -0.5, self.vacuum_on)
-        elif elapsed < 8.0:
-            # Phase 4: 小幅後退
-            return VehicleCommand(-0.25, 0, self.vacuum_on)
-        else:
-            # Phase 5+: 左右擺動
+        if elapsed < 1.5:
+            # Phase 0: 小幅前進靠近角落
+            return VehicleCommand(0.3, 0, self.vacuum_on)
+        elif elapsed < 4.0:
+            # Phase 1: 左右擺動清掃
             import math
-            swing = 0.35 * math.sin((elapsed - 8.0) * 4.0)
-            return VehicleCommand(0.2, swing, self.vacuum_on)
+            swing = 0.4 * math.sin((elapsed - 1.5) * 3.0)
+            return VehicleCommand(0.15, swing, self.vacuum_on)
+        else:
+            # Phase 2: 左轉準備離開
+            return VehicleCommand(0, -0.5, self.vacuum_on)
 
     def _state_find_wall(self, right_dist, right_valid, current_time):
         """
@@ -310,4 +298,18 @@ if __name__ == "__main__":
 
         current_time += 0.1
 
+    # 測試角落掃描
+    print("\n========== 角落掃描測試 ==========\n")
+    follower.reset()
+    follower.trigger_sweep(current_time)
+    print(f"[Sweep Test] 觸發角落掃描")
+    print(f"             State: {follower.get_state()}")
+
+    for i in range(6):  # 模擬 6 秒
+        cmd = follower.update(100, 15, current_time)
+        print(f"[{i}s] State: {follower.get_state()}, "
+              f"linear={cmd.linear_velocity:+.2f}, angular={cmd.angular_velocity:+.2f}")
+        current_time += 1.0
+
+    print(f"\n最終狀態: {follower.get_state()}")
     print("========== 測試完成 ==========")
