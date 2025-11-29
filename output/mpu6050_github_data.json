@@ -1,0 +1,519 @@
+{
+  "repo_info": {
+    "name": "mpu6050",
+    "full_name": "ElectronicCats/mpu6050",
+    "description": "MPU6050 Arduino Library",
+    "url": "https://github.com/ElectronicCats/mpu6050",
+    "homepage": "",
+    "stars": 418,
+    "forks": 142,
+    "open_issues": 2,
+    "default_branch": "master",
+    "created_at": "2019-02-03T10:54:43+00:00",
+    "updated_at": "2025-11-19T07:28:48+00:00",
+    "language": "C++",
+    "license": "MIT License",
+    "topics": [
+      "mpu6050",
+      "arduino",
+      "arduino-library",
+      "accelerometer",
+      "arduino-uno"
+    ]
+  },
+  "readme": "# MPU6050 by Electronic Cats - Library for Arduino\n<p align=center>\n  <a href=\"https://github.com/ElectronicCats/mpu6050/wiki\">\n    <img src=\"https://user-images.githubusercontent.com/107638696/241324971-43b8fe88-447d-4c2d-9296-4b3aaa50f4ce.png\" height=\"400\" />\n  </a>\n</p>\n<p align=center>\n  <a href=\"https://github.com/ElectronicCats/mpu6050/wiki\">\n    <img src=\"https://github.com/ElectronicCats/mpu6050/assets/139595394/62f14865-5e11-4c83-a044-f63a2ddbeb23\" width=\"200\" height=\"104\"/>\n  </a>\n</p>\n\n[![LibraryBuild](https://github.com/ElectronicCats/mpu6050/actions/workflows/LibraryBuild.yml/badge.svg)](https://github.com/ElectronicCats/mpu6050/actions/workflows/LibraryBuild.yml)\n\nArduino library for controlling MPU6050 module.\n\nMPU6050 Combines a 3-axis gyroscope and a 3-axis accelerometer on the same silicon die together with\nan onboard DMP (_Digital Motion Processor_) which processes complex 6-axis MotionFusion algorithms.\n\n_Based on [jrowberg/i2cdevlib](https://github.com/jrowberg/i2cdevlib/tree/master/Arduino/MPU6050)_\n\n## Features of this version\n- ### Supported Chipsets\n  - AVR\n  - SAM\n  - SAMD21 \n  - ARM\n  - ESP32 \n  - ESP8266\n  - RENESAS\n  \n## Quick Installing\nTo install, use the [Arduino Library Manager](https://support.arduino.cc/hc/en-us/articles/5145457742236-Add-libraries-to-Arduino-IDE) and search for \"MPU6050\" and install the MPU6050 by Electronic Cats library.\n\n## How to contribute <img src=\"https://electroniccats.com/wp-content/uploads/2018/01/fav.png\" height=\"35\"><img src=\"https://raw.githubusercontent.com/gist/ManulMax/2d20af60d709805c55fd784ca7cba4b9/raw/bcfeac7604f674ace63623106eb8bb8471d844a6/github.gif\" height=\"30\">\n Contributions are welcome! \n\nPlease read the document  [**Contribution Manual**](https://github.com/ElectronicCats/electroniccats-cla/blob/main/electroniccats-contribution-manual.md)  which will show you how to contribute your changes to the project.\n\n✨ Thanks to all our [contributors](https://github.com/ElectronicCats/mpu6050/graphs/contributors)! ✨\n\nSee [**_Electronic Cats CLA_**](https://github.com/ElectronicCats/electroniccats-cla/blob/main/electroniccats-cla.md) for more information.\n\nSee the  [**community code of conduct**](https://github.com/ElectronicCats/electroniccats-cla/blob/main/electroniccats-community-code-of-conduct.md)   for a vision of the community we want to build and what we expect from it.\n\n## Maintainer\n<a href=\"https://github.com/sponsors/ElectronicCats\">\n <p align=\"center\">\n  <img src=\"https://electroniccats.com/wp-content/uploads/2020/07/Badge_GHS.png\" height=\"104\" />\n </p>\n</a>\n\nElectronic Cats invests time and resources providing this open source design, please support Electronic Cats and open-source hardware by purchasing products from Electronic Cats!\n",
+  "file_tree": [
+    {
+      "path": ".github",
+      "type": "dir",
+      "size": null
+    },
+    {
+      "path": ".gitignore",
+      "type": "file",
+      "size": 73
+    },
+    {
+      "path": "LICENSE",
+      "type": "file",
+      "size": 1071
+    },
+    {
+      "path": "README.md",
+      "type": "file",
+      "size": 2768
+    },
+    {
+      "path": "examples",
+      "type": "dir",
+      "size": null
+    },
+    {
+      "path": "keywords.txt",
+      "type": "file",
+      "size": 3926
+    },
+    {
+      "path": "library.properties",
+      "type": "file",
+      "size": 371
+    },
+    {
+      "path": "src",
+      "type": "dir",
+      "size": null
+    },
+    {
+      "path": ".github/FUNDING.yml",
+      "type": "file",
+      "size": 102
+    },
+    {
+      "path": ".github/ISSUE_TEMPLATE",
+      "type": "dir",
+      "size": null
+    },
+    {
+      "path": ".github/stale.yml",
+      "type": "file",
+      "size": 1021
+    },
+    {
+      "path": ".github/workflows",
+      "type": "dir",
+      "size": null
+    },
+    {
+      "path": "examples/IMU_Zero",
+      "type": "dir",
+      "size": null
+    },
+    {
+      "path": "examples/MCU_Powercycle_DMP6",
+      "type": "dir",
+      "size": null
+    },
+    {
+      "path": "examples/MPU6050_DMP6",
+      "type": "dir",
+      "size": null
+    },
+    {
+      "path": "examples/MPU6050_DMP6_ESPWiFi",
+      "type": "dir",
+      "size": null
+    },
+    {
+      "path": "examples/MPU6050_DMP6_Ethernet",
+      "type": "dir",
+      "size": null
+    },
+    {
+      "path": "examples/MPU6050_DMP6_ImuData_for_ROS",
+      "type": "dir",
+      "size": null
+    },
+    {
+      "path": "examples/MPU6050_raw",
+      "type": "dir",
+      "size": null
+    },
+    {
+      "path": "src/I2Cdev.cpp",
+      "type": "file",
+      "size": 59001
+    },
+    {
+      "path": "src/I2Cdev.h",
+      "type": "file",
+      "size": 14051
+    },
+    {
+      "path": "src/MPU6050.cpp",
+      "type": "file",
+      "size": 147569
+    },
+    {
+      "path": "src/MPU6050.h",
+      "type": "file",
+      "size": 32673
+    },
+    {
+      "path": "src/MPU6050_6Axis_MotionApps20.cpp",
+      "type": "file",
+      "size": 35543
+    },
+    {
+      "path": "src/MPU6050_6Axis_MotionApps20.h",
+      "type": "file",
+      "size": 8541
+    },
+    {
+      "path": "src/MPU6050_6Axis_MotionApps612.cpp",
+      "type": "file",
+      "size": 39464
+    },
+    {
+      "path": "src/MPU6050_6Axis_MotionApps612.h",
+      "type": "file",
+      "size": 8719
+    },
+    {
+      "path": "src/MPU6050_9Axis_MotionApps41.cpp",
+      "type": "file",
+      "size": 52314
+    },
+    {
+      "path": "src/MPU6050_9Axis_MotionApps41.h",
+      "type": "file",
+      "size": 8388
+    },
+    {
+      "path": "src/helper_3dmath.h",
+      "type": "file",
+      "size": 6461
+    },
+    {
+      "path": ".github/ISSUE_TEMPLATE/BUG_REPORT_EC.md",
+      "type": "file",
+      "size": 1887
+    },
+    {
+      "path": ".github/ISSUE_TEMPLATE/Feedback-request.md",
+      "type": "file",
+      "size": 551
+    },
+    {
+      "path": ".github/ISSUE_TEMPLATE/config.yml",
+      "type": "file",
+      "size": 395
+    },
+    {
+      "path": ".github/workflows/LibraryBuild.yml",
+      "type": "file",
+      "size": 3832
+    },
+    {
+      "path": ".github/workflows/arduino-lint.yml",
+      "type": "file",
+      "size": 403
+    },
+    {
+      "path": "examples/IMU_Zero/IMU_Zero.ino",
+      "type": "file",
+      "size": 8734
+    },
+    {
+      "path": "examples/MCU_Powercycle_DMP6/MCU_Powercycle_DMP6.ino",
+      "type": "file",
+      "size": 4641
+    },
+    {
+      "path": "examples/MPU6050_DMP6/MPU6050_DMP6.ino",
+      "type": "file",
+      "size": 10161
+    },
+    {
+      "path": "examples/MPU6050_DMP6/Processing",
+      "type": "dir",
+      "size": null
+    },
+    {
+      "path": "examples/MPU6050_DMP6_ESPWiFi/MPU6050_DMP6_ESPWiFi.ino",
+      "type": "file",
+      "size": 11885
+    },
+    {
+      "path": "examples/MPU6050_DMP6_ESPWiFi/Processing",
+      "type": "dir",
+      "size": null
+    },
+    {
+      "path": "examples/MPU6050_DMP6_Ethernet/MPU6050_DMP6_Ethernet.ino",
+      "type": "file",
+      "size": 17601
+    },
+    {
+      "path": "examples/MPU6050_DMP6_ImuData_for_ROS/MPU6050_DMP6_ImuData_for_ROS.ino",
+      "type": "file",
+      "size": 5683
+    },
+    {
+      "path": "examples/MPU6050_raw/MPU6050_raw.ino",
+      "type": "file",
+      "size": 4092
+    },
+    {
+      "path": "examples/MPU6050_DMP6/Processing/MPUTeapot",
+      "type": "dir",
+      "size": null
+    },
+    {
+      "path": "examples/MPU6050_DMP6_ESPWiFi/Processing/MPUOSCTeapot",
+      "type": "dir",
+      "size": null
+    },
+    {
+      "path": "examples/MPU6050_DMP6/Processing/MPUTeapot/MPUTeapot.pde",
+      "type": "file",
+      "size": 6149
+    },
+    {
+      "path": "examples/MPU6050_DMP6_ESPWiFi/Processing/MPUOSCTeapot/MPUOSCTeapot.pde",
+      "type": "file",
+      "size": 4992
+    }
+  ],
+  "languages": {
+    "C++": {
+      "bytes": 412724,
+      "percentage": 100.0
+    }
+  },
+  "signatures": [],
+  "test_examples": [],
+  "issues": [],
+  "changelog": "",
+  "releases": [
+    {
+      "tag_name": "v1.4.4",
+      "name": "v1.4.4",
+      "body": "- Resolution calculation fix when setting accel/gyro range",
+      "draft": false,
+      "prerelease": false,
+      "created_at": "2025-06-24T01:18:53+00:00",
+      "published_at": "2025-06-24T01:19:33+00:00",
+      "url": "https://github.com/ElectronicCats/mpu6050/releases/tag/v1.4.4",
+      "tarball_url": "https://api.github.com/repos/ElectronicCats/mpu6050/tarball/v1.4.4",
+      "zipball_url": "https://api.github.com/repos/ElectronicCats/mpu6050/zipball/v1.4.4"
+    },
+    {
+      "tag_name": "v1.4.3",
+      "name": "v1.4.3",
+      "body": "- Resolution calculation fix when setting accel/gyro range",
+      "draft": false,
+      "prerelease": false,
+      "created_at": "2025-02-27T22:54:20+00:00",
+      "published_at": "2025-02-27T22:56:30+00:00",
+      "url": "https://github.com/ElectronicCats/mpu6050/releases/tag/v1.4.3",
+      "tarball_url": "https://api.github.com/repos/ElectronicCats/mpu6050/tarball/v1.4.3",
+      "zipball_url": "https://api.github.com/repos/ElectronicCats/mpu6050/zipball/v1.4.3"
+    },
+    {
+      "tag_name": "v1.4.2",
+      "name": "v1.4.2",
+      "body": "- MPU 92.65 can now be detected by mpu.testConnection() by @Sinamajidi",
+      "draft": false,
+      "prerelease": false,
+      "created_at": "2025-02-27T19:00:41+00:00",
+      "published_at": "2025-02-27T19:02:00+00:00",
+      "url": "https://github.com/ElectronicCats/mpu6050/releases/tag/v1.4.2",
+      "tarball_url": "https://api.github.com/repos/ElectronicCats/mpu6050/tarball/v1.4.2",
+      "zipball_url": "https://api.github.com/repos/ElectronicCats/mpu6050/zipball/v1.4.2"
+    },
+    {
+      "tag_name": "v1.4.1",
+      "name": "v1.4.1",
+      "body": "- [fixed initialize switch statements](https://github.com/ElectronicCats/mpu6050/commit/c247d358dc6165059eff7fbae07baa676db1c69f) thanks [stefcarpi](https://github.com/ElectronicCats/mpu6050/commits?author=stefcarpi)",
+      "draft": false,
+      "prerelease": false,
+      "created_at": "2024-10-08T17:53:09+00:00",
+      "published_at": "2024-10-08T17:54:23+00:00",
+      "url": "https://github.com/ElectronicCats/mpu6050/releases/tag/v1.4.1",
+      "tarball_url": "https://api.github.com/repos/ElectronicCats/mpu6050/tarball/v1.4.1",
+      "zipball_url": "https://api.github.com/repos/ElectronicCats/mpu6050/zipball/v1.4.1"
+    },
+    {
+      "tag_name": "v1.4.0",
+      "name": "v1.4.0",
+      "body": "- New examples\r\n- Refactor examples",
+      "draft": false,
+      "prerelease": false,
+      "created_at": "2024-10-03T15:47:15+00:00",
+      "published_at": "2024-10-03T15:48:32+00:00",
+      "url": "https://github.com/ElectronicCats/mpu6050/releases/tag/v1.4.0",
+      "tarball_url": "https://api.github.com/repos/ElectronicCats/mpu6050/tarball/v1.4.0",
+      "zipball_url": "https://api.github.com/repos/ElectronicCats/mpu6050/zipball/v1.4.0"
+    },
+    {
+      "tag_name": "v1.3.1",
+      "name": "Fix debug compilation bugs",
+      "body": "Bug fixes:\r\n\r\n- Print not declared variables\r\n- Use `printf` as Arduino `Serial.print`\r\n\r\nRefactors:\r\n\r\n- Improve DEBUG macro validation",
+      "draft": false,
+      "prerelease": false,
+      "created_at": "2024-03-19T18:14:06+00:00",
+      "published_at": "2024-03-19T18:21:03+00:00",
+      "url": "https://github.com/ElectronicCats/mpu6050/releases/tag/v1.3.1",
+      "tarball_url": "https://api.github.com/repos/ElectronicCats/mpu6050/tarball/v1.3.1",
+      "zipball_url": "https://api.github.com/repos/ElectronicCats/mpu6050/zipball/v1.3.1"
+    },
+    {
+      "tag_name": "v1.3.0",
+      "name": "v1.3.0",
+      "body": "- Added sensitivity variation as a new Constructor\r\n- Added get method to retrieve resolution\r\n- Renamed dmpLinearAccelInWorld() method as dmpConvertToWorldFrame() since it needs to be used with gyro data as well\r\n- Added example to show how to extract data required by ROS IMU message\r\n- One doubt is whether 1G acceleration is 8192 or 16384 (At 2G resolution) because MPU datasheet says full range is 32768. For now using 8192 as it is hardcoded as gravity. Similarly using 16384 as max Gyro resolution. Please rectify this if wrong.\r\n- Gravity value needs to be updated to use the new resolution variable to be completely compatible with resolution variation",
+      "draft": false,
+      "prerelease": false,
+      "created_at": "2024-01-18T20:33:19+00:00",
+      "published_at": "2024-01-18T20:36:14+00:00",
+      "url": "https://github.com/ElectronicCats/mpu6050/releases/tag/v1.3.0",
+      "tarball_url": "https://api.github.com/repos/ElectronicCats/mpu6050/tarball/v1.3.0",
+      "zipball_url": "https://api.github.com/repos/ElectronicCats/mpu6050/zipball/v1.3.0"
+    },
+    {
+      "tag_name": "v1.2.0",
+      "name": "v1.2.0",
+      "body": "- Update library from i2cdev\r\n- add Support multiple Wire objects in MPU6050 device code",
+      "draft": false,
+      "prerelease": false,
+      "created_at": "2023-12-19T22:06:22+00:00",
+      "published_at": "2023-12-19T22:07:58+00:00",
+      "url": "https://github.com/ElectronicCats/mpu6050/releases/tag/v1.2.0",
+      "tarball_url": "https://api.github.com/repos/ElectronicCats/mpu6050/tarball/v1.2.0",
+      "zipball_url": "https://api.github.com/repos/ElectronicCats/mpu6050/zipball/v1.2.0"
+    },
+    {
+      "tag_name": "v1.0.2",
+      "name": "v1.0.2",
+      "body": "Set fifo rate and MPU address",
+      "draft": false,
+      "prerelease": false,
+      "created_at": "2023-12-13T22:24:54+00:00",
+      "published_at": "2023-12-13T22:26:10+00:00",
+      "url": "https://github.com/ElectronicCats/mpu6050/releases/tag/v1.0.2",
+      "tarball_url": "https://api.github.com/repos/ElectronicCats/mpu6050/tarball/v1.0.2",
+      "zipball_url": "https://api.github.com/repos/ElectronicCats/mpu6050/zipball/v1.0.2"
+    },
+    {
+      "tag_name": "v1.0.1",
+      "name": "v1.0.1",
+      "body": "Remove debug messages",
+      "draft": false,
+      "prerelease": false,
+      "created_at": "2023-11-30T23:46:07+00:00",
+      "published_at": "2023-12-01T03:14:02+00:00",
+      "url": "https://github.com/ElectronicCats/mpu6050/releases/tag/v1.0.1",
+      "tarball_url": "https://api.github.com/repos/ElectronicCats/mpu6050/tarball/v1.0.1",
+      "zipball_url": "https://api.github.com/repos/ElectronicCats/mpu6050/zipball/v1.0.1"
+    },
+    {
+      "tag_name": "v1.0.0",
+      "name": "v1.0.0",
+      "body": "- Update examples\r\n- Update README\r\n- New Wiki!!",
+      "draft": false,
+      "prerelease": false,
+      "created_at": "2023-06-06T23:07:11+00:00",
+      "published_at": "2023-06-06T23:08:02+00:00",
+      "url": "https://github.com/ElectronicCats/mpu6050/releases/tag/v1.0.0",
+      "tarball_url": "https://api.github.com/repos/ElectronicCats/mpu6050/tarball/v1.0.0",
+      "zipball_url": "https://api.github.com/repos/ElectronicCats/mpu6050/zipball/v1.0.0"
+    },
+    {
+      "tag_name": "v0.6.0",
+      "name": "v0.6.0",
+      "body": "- adding an IMU namespace\r\n- Update the I2C structure",
+      "draft": false,
+      "prerelease": false,
+      "created_at": "2022-09-09T21:22:30+00:00",
+      "published_at": "2022-09-09T21:24:31+00:00",
+      "url": "https://github.com/ElectronicCats/mpu6050/releases/tag/v0.6.0",
+      "tarball_url": "https://api.github.com/repos/ElectronicCats/mpu6050/tarball/v0.6.0",
+      "zipball_url": "https://api.github.com/repos/ElectronicCats/mpu6050/zipball/v0.6.0"
+    },
+    {
+      "tag_name": "v0.5.0",
+      "name": "v0.5.0",
+      "body": "- Adding support for SAM architecture\r\n- Fixing devicedId value \r\nThanks @sylvaneau",
+      "draft": false,
+      "prerelease": false,
+      "created_at": "2021-10-11T01:02:19+00:00",
+      "published_at": "2021-10-11T01:04:00+00:00",
+      "url": "https://github.com/ElectronicCats/mpu6050/releases/tag/v0.5.0",
+      "tarball_url": "https://api.github.com/repos/ElectronicCats/mpu6050/tarball/v0.5.0",
+      "zipball_url": "https://api.github.com/repos/ElectronicCats/mpu6050/zipball/v0.5.0"
+    },
+    {
+      "tag_name": "v0.4.0",
+      "name": "v0.4.0",
+      "body": "- Improved the performance of normalizing quaternions and vectors, thanks @quesswho\r\n- Enhanced device ID checking to allow usage of certain available clones, thanks @holzachr\r\n- And more updates from jrowberg/i2cdevlib",
+      "draft": false,
+      "prerelease": false,
+      "created_at": "2021-09-12T02:13:35+00:00",
+      "published_at": "2021-09-12T02:16:41+00:00",
+      "url": "https://github.com/ElectronicCats/mpu6050/releases/tag/v0.4.0",
+      "tarball_url": "https://api.github.com/repos/ElectronicCats/mpu6050/tarball/v0.4.0",
+      "zipball_url": "https://api.github.com/repos/ElectronicCats/mpu6050/zipball/v0.4.0"
+    },
+    {
+      "tag_name": "v0.3.0",
+      "name": "",
+      "body": "- Add support Arduino Nano BLE Sense\r\n- Update examples",
+      "draft": false,
+      "prerelease": false,
+      "created_at": "2021-04-25T23:41:54+00:00",
+      "published_at": "2021-04-25T23:42:46+00:00",
+      "url": "https://github.com/ElectronicCats/mpu6050/releases/tag/v0.3.0",
+      "tarball_url": "https://api.github.com/repos/ElectronicCats/mpu6050/tarball/v0.3.0",
+      "zipball_url": "https://api.github.com/repos/ElectronicCats/mpu6050/zipball/v0.3.0"
+    },
+    {
+      "tag_name": "v0.2.1",
+      "name": "",
+      "body": "",
+      "draft": false,
+      "prerelease": false,
+      "created_at": "2020-08-19T15:00:49+00:00",
+      "published_at": "2020-08-19T15:01:10+00:00",
+      "url": "https://github.com/ElectronicCats/mpu6050/releases/tag/v0.2.1",
+      "tarball_url": "https://api.github.com/repos/ElectronicCats/mpu6050/tarball/v0.2.1",
+      "zipball_url": "https://api.github.com/repos/ElectronicCats/mpu6050/zipball/v0.2.1"
+    },
+    {
+      "tag_name": "v0.2.0",
+      "name": "Added Support for ESP32",
+      "body": "- Added Support for ESP32\r\n- Example for ESP8266 and ESP32",
+      "draft": false,
+      "prerelease": false,
+      "created_at": "2020-08-09T02:56:29+00:00",
+      "published_at": "2020-08-09T03:00:38+00:00",
+      "url": "https://github.com/ElectronicCats/mpu6050/releases/tag/v0.2.0",
+      "tarball_url": "https://api.github.com/repos/ElectronicCats/mpu6050/tarball/v0.2.0",
+      "zipball_url": "https://api.github.com/repos/ElectronicCats/mpu6050/zipball/v0.2.0"
+    },
+    {
+      "tag_name": "v0.1.0",
+      "name": "v0.1.0",
+      "body": "- function replacement _BV for ARM M0 in examples\r\n- add Action Github for test",
+      "draft": false,
+      "prerelease": false,
+      "created_at": "2020-05-27T19:27:03+00:00",
+      "published_at": "2020-05-27T19:27:57+00:00",
+      "url": "https://github.com/ElectronicCats/mpu6050/releases/tag/v0.1.0",
+      "tarball_url": "https://api.github.com/repos/ElectronicCats/mpu6050/tarball/v0.1.0",
+      "zipball_url": "https://api.github.com/repos/ElectronicCats/mpu6050/zipball/v0.1.0"
+    },
+    {
+      "tag_name": "v0.0.2",
+      "name": "",
+      "body": "The New:\r\n\r\n- Bug Fix writeWords() skips every other word\r\n- add support for dtostrf in samd\r\n- Update MPU6050_6Axis_MotionApps20.h\r\n- Added Auto Calibration routine\r\n- Faster Better Tuning +plus\r\n- Update i2cdevlib\r\n- and other Corrections\r\n\r\nThanks to @ZHomeSlice and jrowberg of i2cdevlib",
+      "draft": false,
+      "prerelease": false,
+      "created_at": "2019-09-05T13:30:10+00:00",
+      "published_at": "2019-09-05T13:35:40+00:00",
+      "url": "https://github.com/ElectronicCats/mpu6050/releases/tag/v0.0.2",
+      "tarball_url": "https://api.github.com/repos/ElectronicCats/mpu6050/tarball/v0.0.2",
+      "zipball_url": "https://api.github.com/repos/ElectronicCats/mpu6050/zipball/v0.0.2"
+    },
+    {
+      "tag_name": "v0.0.1",
+      "name": "Ready!",
+      "body": "",
+      "draft": false,
+      "prerelease": false,
+      "created_at": "2019-02-03T18:03:01+00:00",
+      "published_at": "2019-02-03T19:25:47+00:00",
+      "url": "https://github.com/ElectronicCats/mpu6050/releases/tag/v0.0.1",
+      "tarball_url": "https://api.github.com/repos/ElectronicCats/mpu6050/tarball/v0.0.1",
+      "zipball_url": "https://api.github.com/repos/ElectronicCats/mpu6050/zipball/v0.0.1"
+    }
+  ]
+}

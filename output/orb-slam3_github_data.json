@@ -1,0 +1,5275 @@
+{
+  "repo_info": {
+    "name": "ORB_SLAM3",
+    "full_name": "UZ-SLAMLab/ORB_SLAM3",
+    "description": "ORB-SLAM3: An Accurate Open-Source Library for Visual, Visual-Inertial and Multi-Map SLAM",
+    "url": "https://github.com/UZ-SLAMLab/ORB_SLAM3",
+    "homepage": "",
+    "stars": 7988,
+    "forks": 2903,
+    "open_issues": 562,
+    "default_branch": "master",
+    "created_at": "2020-07-18T07:47:46+00:00",
+    "updated_at": "2025-11-25T05:39:41+00:00",
+    "language": "C++",
+    "license": "GNU General Public License v3.0",
+    "topics": [
+      "slam-algorithms"
+    ]
+  },
+  "readme": "# ORB-SLAM3\n\n### V1.0, December 22th, 2021\n**Authors:** Carlos Campos, Richard Elvira, Juan J. Gómez Rodríguez, [José M. M. Montiel](http://webdiis.unizar.es/~josemari/), [Juan D. Tardos](http://webdiis.unizar.es/~jdtardos/).\n\nThe [Changelog](https://github.com/UZ-SLAMLab/ORB_SLAM3/blob/master/Changelog.md) describes the features of each version.\n\nORB-SLAM3 is the first real-time SLAM library able to perform **Visual, Visual-Inertial and Multi-Map SLAM** with **monocular, stereo and RGB-D** cameras, using **pin-hole and fisheye** lens models. In all sensor configurations, ORB-SLAM3 is as robust as the best systems available in the literature, and significantly more accurate. \n\nWe provide examples to run ORB-SLAM3 in the [EuRoC dataset](http://projects.asl.ethz.ch/datasets/doku.php?id=kmavvisualinertialdatasets) using stereo or monocular, with or without IMU, and in the [TUM-VI dataset](https://vision.in.tum.de/data/datasets/visual-inertial-dataset) using fisheye stereo or monocular, with or without IMU. Videos of some example executions can be found at [ORB-SLAM3 channel](https://www.youtube.com/channel/UCXVt-kXG6T95Z4tVaYlU80Q).\n\nThis software is based on [ORB-SLAM2](https://github.com/raulmur/ORB_SLAM2) developed by [Raul Mur-Artal](http://webdiis.unizar.es/~raulmur/), [Juan D. Tardos](http://webdiis.unizar.es/~jdtardos/), [J. M. M. Montiel](http://webdiis.unizar.es/~josemari/) and [Dorian Galvez-Lopez](http://doriangalvez.com/) ([DBoW2](https://github.com/dorian3d/DBoW2)).\n\n<a href=\"https://youtu.be/HyLNq-98LRo\" target=\"_blank\"><img src=\"https://img.youtube.com/vi/HyLNq-98LRo/0.jpg\" \nalt=\"ORB-SLAM3\" width=\"240\" height=\"180\" border=\"10\" /></a>\n\n### Related Publications:\n\n[ORB-SLAM3] Carlos Campos, Richard Elvira, Juan J. Gómez Rodríguez, José M. M. Montiel and Juan D. Tardós, **ORB-SLAM3: An Accurate Open-Source Library for Visual, Visual-Inertial and Multi-Map SLAM**, *IEEE Transactions on Robotics 37(6):1874-1890, Dec. 2021*. **[PDF](https://arxiv.org/abs/2007.11898)**.\n\n[IMU-Initialization] Carlos Campos, J. M. M. Montiel and Juan D. Tardós, **Inertial-Only Optimization for Visual-Inertial Initialization**, *ICRA 2020*. **[PDF](https://arxiv.org/pdf/2003.05766.pdf)**\n\n[ORBSLAM-Atlas] Richard Elvira, J. M. M. Montiel and Juan D. Tardós, **ORBSLAM-Atlas: a robust and accurate multi-map system**, *IROS 2019*. **[PDF](https://arxiv.org/pdf/1908.11585.pdf)**.\n\n[ORBSLAM-VI] Raúl Mur-Artal, and Juan D. Tardós, **Visual-inertial monocular SLAM with map reuse**, IEEE Robotics and Automation Letters, vol. 2 no. 2, pp. 796-803, 2017. **[PDF](https://arxiv.org/pdf/1610.05949.pdf)**. \n\n[Stereo and RGB-D] Raúl Mur-Artal and Juan D. Tardós. **ORB-SLAM2: an Open-Source SLAM System for Monocular, Stereo and RGB-D Cameras**. *IEEE Transactions on Robotics,* vol. 33, no. 5, pp. 1255-1262, 2017. **[PDF](https://arxiv.org/pdf/1610.06475.pdf)**.\n\n[Monocular] Raúl Mur-Artal, José M. M. Montiel and Juan D. Tardós. **ORB-SLAM: A Versatile and Accurate Monocular SLAM System**. *IEEE Transactions on Robotics,* vol. 31, no. 5, pp. 1147-1163, 2015. (**2015 IEEE Transactions on Robotics Best Paper Award**). **[PDF](https://arxiv.org/pdf/1502.00956.pdf)**.\n\n[DBoW2 Place Recognition] Dorian Gálvez-López and Juan D. Tardós. **Bags of Binary Words for Fast Place Recognition in Image Sequences**. *IEEE Transactions on Robotics,* vol. 28, no. 5, pp. 1188-1197, 2012. **[PDF](http://doriangalvez.com/php/dl.php?dlp=GalvezTRO12.pdf)**\n\n# 1. License\n\nORB-SLAM3 is released under [GPLv3 license](https://github.com/UZ-SLAMLab/ORB_SLAM3/LICENSE). For a list of all code/library dependencies (and associated licenses), please see [Dependencies.md](https://github.com/UZ-SLAMLab/ORB_SLAM3/blob/master/Dependencies.md).\n\nFor a closed-source version of ORB-SLAM3 for commercial purposes, please contact the authors: orbslam (at) unizar (dot) es.\n\nIf you use ORB-SLAM3 in an academic work, please cite:\n  \n    @article{ORBSLAM3_TRO,\n      title={{ORB-SLAM3}: An Accurate Open-Source Library for Visual, Visual-Inertial \n               and Multi-Map {SLAM}},\n      author={Campos, Carlos AND Elvira, Richard AND G\\´omez, Juan J. AND Montiel, \n              Jos\\'e M. M. AND Tard\\'os, Juan D.},\n      journal={IEEE Transactions on Robotics}, \n      volume={37},\n      number={6},\n      pages={1874-1890},\n      year={2021}\n     }\n\n# 2. Prerequisites\nWe have tested the library in **Ubuntu 16.04** and **18.04**, but it should be easy to compile in other platforms. A powerful computer (e.g. i7) will ensure real-time performance and provide more stable and accurate results.\n\n## C++11 or C++0x Compiler\nWe use the new thread and chrono functionalities of C++11.\n\n## Pangolin\nWe use [Pangolin](https://github.com/stevenlovegrove/Pangolin) for visualization and user interface. Dowload and install instructions can be found at: https://github.com/stevenlovegrove/Pangolin.\n\n## OpenCV\nWe use [OpenCV](http://opencv.org) to manipulate images and features. Dowload and install instructions can be found at: http://opencv.org. **Required at leat 3.0. Tested with OpenCV 3.2.0 and 4.4.0**.\n\n## Eigen3\nRequired by g2o (see below). Download and install instructions can be found at: http://eigen.tuxfamily.org. **Required at least 3.1.0**.\n\n## DBoW2 and g2o (Included in Thirdparty folder)\nWe use modified versions of the [DBoW2](https://github.com/dorian3d/DBoW2) library to perform place recognition and [g2o](https://github.com/RainerKuemmerle/g2o) library to perform non-linear optimizations. Both modified libraries (which are BSD) are included in the *Thirdparty* folder.\n\n## Python\nRequired to calculate the alignment of the trajectory with the ground truth. **Required Numpy module**.\n\n* (win) http://www.python.org/downloads/windows\n* (deb) `sudo apt install libpython2.7-dev`\n* (mac) preinstalled with osx\n\n## ROS (optional)\n\nWe provide some examples to process input of a monocular, monocular-inertial, stereo, stereo-inertial or RGB-D camera using ROS. Building these examples is optional. These have been tested with ROS Melodic under Ubuntu 18.04.\n\n# 3. Building ORB-SLAM3 library and examples\n\nClone the repository:\n```\ngit clone https://github.com/UZ-SLAMLab/ORB_SLAM3.git ORB_SLAM3\n```\n\nWe provide a script `build.sh` to build the *Thirdparty* libraries and *ORB-SLAM3*. Please make sure you have installed all required dependencies (see section 2). Execute:\n```\ncd ORB_SLAM3\nchmod +x build.sh\n./build.sh\n```\n\nThis will create **libORB_SLAM3.so**  at *lib* folder and the executables in *Examples* folder.\n\n# 4. Running ORB-SLAM3 with your camera\n\nDirectory `Examples` contains several demo programs and calibration files to run ORB-SLAM3 in all sensor configurations with Intel Realsense cameras T265 and D435i. The steps needed to use your own camera are: \n\n1. Calibrate your camera following `Calibration_Tutorial.pdf` and write your calibration file `your_camera.yaml`\n\n2. Modify one of the provided demos to suit your specific camera model, and build it\n\n3. Connect the camera to your computer using USB3 or the appropriate interface\n\n4. Run ORB-SLAM3. For example, for our D435i camera, we would execute:\n\n```\n./Examples/Stereo-Inertial/stereo_inertial_realsense_D435i Vocabulary/ORBvoc.txt ./Examples/Stereo-Inertial/RealSense_D435i.yaml\n```\n\n# 5. EuRoC Examples\n[EuRoC dataset](http://projects.asl.ethz.ch/datasets/doku.php?id=kmavvisualinertialdatasets) was recorded with two pinhole cameras and an inertial sensor. We provide an example script to launch EuRoC sequences in all the sensor configurations.\n\n1. Download a sequence (ASL format) from http://projects.asl.ethz.ch/datasets/doku.php?id=kmavvisualinertialdatasets\n\n2. Open the script \"euroc_examples.sh\" in the root of the project. Change **pathDatasetEuroc** variable to point to the directory where the dataset has been uncompressed. \n\n3. Execute the following script to process all the sequences with all sensor configurations:\n```\n./euroc_examples\n```\n\n## Evaluation\nEuRoC provides ground truth for each sequence in the IMU body reference. As pure visual executions report trajectories centered in the left camera, we provide in the \"evaluation\" folder the transformation of the ground truth to the left camera reference. Visual-inertial trajectories use the ground truth from the dataset.\n\nExecute the following script to process sequences and compute the RMS ATE:\n```\n./euroc_eval_examples\n```\n\n# 6. TUM-VI Examples\n[TUM-VI dataset](https://vision.in.tum.de/data/datasets/visual-inertial-dataset) was recorded with two fisheye cameras and an inertial sensor.\n\n1. Download a sequence from https://vision.in.tum.de/data/datasets/visual-inertial-dataset and uncompress it.\n\n2. Open the script \"tum_vi_examples.sh\" in the root of the project. Change **pathDatasetTUM_VI** variable to point to the directory where the dataset has been uncompressed. \n\n3. Execute the following script to process all the sequences with all sensor configurations:\n```\n./tum_vi_examples\n```\n\n## Evaluation\nIn TUM-VI ground truth is only available in the room where all sequences start and end. As a result the error measures the drift at the end of the sequence. \n\nExecute the following script to process sequences and compute the RMS ATE:\n```\n./tum_vi_eval_examples\n```\n\n# 7. ROS Examples\n\n### Building the nodes for mono, mono-inertial, stereo, stereo-inertial and RGB-D\nTested with ROS Melodic and ubuntu 18.04.\n\n1. Add the path including *Examples/ROS/ORB_SLAM3* to the ROS_PACKAGE_PATH environment variable. Open .bashrc file:\n  ```\n  gedit ~/.bashrc\n  ```\nand add at the end the following line. Replace PATH by the folder where you cloned ORB_SLAM3:\n\n  ```\n  export ROS_PACKAGE_PATH=${ROS_PACKAGE_PATH}:PATH/ORB_SLAM3/Examples/ROS\n  ```\n  \n2. Execute `build_ros.sh` script:\n\n  ```\n  chmod +x build_ros.sh\n  ./build_ros.sh\n  ```\n  \n### Running Monocular Node\nFor a monocular input from topic `/camera/image_raw` run node ORB_SLAM3/Mono. You will need to provide the vocabulary file and a settings file. See the monocular examples above.\n\n  ```\n  rosrun ORB_SLAM3 Mono PATH_TO_VOCABULARY PATH_TO_SETTINGS_FILE\n  ```\n\n### Running Monocular-Inertial Node\nFor a monocular input from topic `/camera/image_raw` and an inertial input from topic `/imu`, run node ORB_SLAM3/Mono_Inertial. Setting the optional third argument to true will apply CLAHE equalization to images (Mainly for TUM-VI dataset).\n\n  ```\n  rosrun ORB_SLAM3 Mono PATH_TO_VOCABULARY PATH_TO_SETTINGS_FILE [EQUALIZATION]\t\n  ```\n\n### Running Stereo Node\nFor a stereo input from topic `/camera/left/image_raw` and `/camera/right/image_raw` run node ORB_SLAM3/Stereo. You will need to provide the vocabulary file and a settings file. For Pinhole camera model, if you **provide rectification matrices** (see Examples/Stereo/EuRoC.yaml example), the node will recitify the images online, **otherwise images must be pre-rectified**. For FishEye camera model, rectification is not required since system works with original images:\n\n  ```\n  rosrun ORB_SLAM3 Stereo PATH_TO_VOCABULARY PATH_TO_SETTINGS_FILE ONLINE_RECTIFICATION\n  ```\n\n### Running Stereo-Inertial Node\nFor a stereo input from topics `/camera/left/image_raw` and `/camera/right/image_raw`, and an inertial input from topic `/imu`, run node ORB_SLAM3/Stereo_Inertial. You will need to provide the vocabulary file and a settings file, including rectification matrices if required in a similar way to Stereo case:\n\n  ```\n  rosrun ORB_SLAM3 Stereo_Inertial PATH_TO_VOCABULARY PATH_TO_SETTINGS_FILE ONLINE_RECTIFICATION [EQUALIZATION]\t\n  ```\n  \n### Running RGB_D Node\nFor an RGB-D input from topics `/camera/rgb/image_raw` and `/camera/depth_registered/image_raw`, run node ORB_SLAM3/RGBD. You will need to provide the vocabulary file and a settings file. See the RGB-D example above.\n\n  ```\n  rosrun ORB_SLAM3 RGBD PATH_TO_VOCABULARY PATH_TO_SETTINGS_FILE\n  ```\n\n**Running ROS example:** Download a rosbag (e.g. V1_02_medium.bag) from the EuRoC dataset (http://projects.asl.ethz.ch/datasets/doku.php?id=kmavvisualinertialdatasets). Open 3 tabs on the terminal and run the following command at each tab for a Stereo-Inertial configuration:\n  ```\n  roscore\n  ```\n  \n  ```\n  rosrun ORB_SLAM3 Stereo_Inertial Vocabulary/ORBvoc.txt Examples/Stereo-Inertial/EuRoC.yaml true\n  ```\n  \n  ```\n  rosbag play --pause V1_02_medium.bag /cam0/image_raw:=/camera/left/image_raw /cam1/image_raw:=/camera/right/image_raw /imu0:=/imu\n  ```\n  \nOnce ORB-SLAM3 has loaded the vocabulary, press space in the rosbag tab.\n\n**Remark:** For rosbags from TUM-VI dataset, some play issue may appear due to chunk size. One possible solution is to rebag them with the default chunk size, for example:\n  ```\n  rosrun rosbag fastrebag.py dataset-room1_512_16.bag dataset-room1_512_16_small_chunks.bag\n  ```\n\n# 8. Running time analysis\nA flag in `include\\Config.h` activates time measurements. It is necessary to uncomment the line `#define REGISTER_TIMES` to obtain the time stats of one execution which is shown at the terminal and stored in a text file(`ExecTimeMean.txt`).\n\n# 9. Calibration\nYou can find a tutorial for visual-inertial calibration and a detailed description of the contents of valid configuration files at  `Calibration_Tutorial.pdf`\n",
+  "file_tree": [
+    {
+      "path": ".gitignore",
+      "type": "file",
+      "size": 1935
+    },
+    {
+      "path": "CMakeLists.txt",
+      "type": "file",
+      "size": 12511
+    },
+    {
+      "path": "Calibration_Tutorial.pdf",
+      "type": "file",
+      "size": 416383
+    },
+    {
+      "path": "Changelog.md",
+      "type": "file",
+      "size": 2103
+    },
+    {
+      "path": "Dependencies.md",
+      "type": "file",
+      "size": 2126
+    },
+    {
+      "path": "Examples",
+      "type": "dir",
+      "size": null
+    },
+    {
+      "path": "Examples_old",
+      "type": "dir",
+      "size": null
+    },
+    {
+      "path": "LICENSE",
+      "type": "file",
+      "size": 35141
+    },
+    {
+      "path": "README.md",
+      "type": "file",
+      "size": 13231
+    },
+    {
+      "path": "Thirdparty",
+      "type": "dir",
+      "size": null
+    },
+    {
+      "path": "Vocabulary",
+      "type": "dir",
+      "size": null
+    },
+    {
+      "path": "build.sh",
+      "type": "file",
+      "size": 618
+    },
+    {
+      "path": "build_ros.sh",
+      "type": "file",
+      "size": 116
+    },
+    {
+      "path": "evaluation",
+      "type": "dir",
+      "size": null
+    },
+    {
+      "path": "include",
+      "type": "dir",
+      "size": null
+    },
+    {
+      "path": "src",
+      "type": "dir",
+      "size": null
+    },
+    {
+      "path": "Examples/Calibration",
+      "type": "dir",
+      "size": null
+    },
+    {
+      "path": "Examples/Monocular-Inertial",
+      "type": "dir",
+      "size": null
+    },
+    {
+      "path": "Examples/Monocular",
+      "type": "dir",
+      "size": null
+    },
+    {
+      "path": "Examples/REAMDME.md",
+      "type": "file",
+      "size": 130
+    },
+    {
+      "path": "Examples/RGB-D-Inertial",
+      "type": "dir",
+      "size": null
+    },
+    {
+      "path": "Examples/RGB-D",
+      "type": "dir",
+      "size": null
+    },
+    {
+      "path": "Examples/Stereo-Inertial",
+      "type": "dir",
+      "size": null
+    },
+    {
+      "path": "Examples/Stereo",
+      "type": "dir",
+      "size": null
+    },
+    {
+      "path": "Examples_old/Monocular-Inertial",
+      "type": "dir",
+      "size": null
+    },
+    {
+      "path": "Examples_old/Monocular",
+      "type": "dir",
+      "size": null
+    },
+    {
+      "path": "Examples_old/REAMDME.md",
+      "type": "file",
+      "size": 130
+    },
+    {
+      "path": "Examples_old/RGB-D-Inertial",
+      "type": "dir",
+      "size": null
+    },
+    {
+      "path": "Examples_old/RGB-D",
+      "type": "dir",
+      "size": null
+    },
+    {
+      "path": "Examples_old/ROS",
+      "type": "dir",
+      "size": null
+    },
+    {
+      "path": "Examples_old/Stereo-Inertial",
+      "type": "dir",
+      "size": null
+    },
+    {
+      "path": "Examples_old/Stereo",
+      "type": "dir",
+      "size": null
+    },
+    {
+      "path": "Thirdparty/DBoW2",
+      "type": "dir",
+      "size": null
+    },
+    {
+      "path": "Thirdparty/Sophus",
+      "type": "dir",
+      "size": null
+    },
+    {
+      "path": "Thirdparty/g2o",
+      "type": "dir",
+      "size": null
+    },
+    {
+      "path": "Vocabulary/ORBvoc.txt.tar.gz",
+      "type": "file",
+      "size": 42527984
+    },
+    {
+      "path": "evaluation/Ground_truth",
+      "type": "dir",
+      "size": null
+    },
+    {
+      "path": "evaluation/associate.py",
+      "type": "file",
+      "size": 5397
+    },
+    {
+      "path": "evaluation/evaluate_ate_scale.py",
+      "type": "file",
+      "size": 10536
+    },
+    {
+      "path": "include/Atlas.h",
+      "type": "file",
+      "size": 4672
+    },
+    {
+      "path": "include/CameraModels",
+      "type": "dir",
+      "size": null
+    },
+    {
+      "path": "include/Config.h",
+      "type": "file",
+      "size": 1409
+    },
+    {
+      "path": "include/Converter.h",
+      "type": "file",
+      "size": 3314
+    },
+    {
+      "path": "include/Frame.h",
+      "type": "file",
+      "size": 12029
+    },
+    {
+      "path": "include/FrameDrawer.h",
+      "type": "file",
+      "size": 2459
+    },
+    {
+      "path": "include/G2oTypes.h",
+      "type": "file",
+      "size": 25071
+    },
+    {
+      "path": "include/GeometricTools.h",
+      "type": "file",
+      "size": 3013
+    },
+    {
+      "path": "include/ImuTypes.h",
+      "type": "file",
+      "size": 8615
+    },
+    {
+      "path": "include/KeyFrame.h",
+      "type": "file",
+      "size": 16716
+    },
+    {
+      "path": "include/KeyFrameDatabase.h",
+      "type": "file",
+      "size": 2884
+    },
+    {
+      "path": "include/LocalMapping.h",
+      "type": "file",
+      "size": 4536
+    },
+    {
+      "path": "include/LoopClosing.h",
+      "type": "file",
+      "size": 7012
+    },
+    {
+      "path": "include/MLPnPsolver.h",
+      "type": "file",
+      "size": 9670
+    },
+    {
+      "path": "include/Map.h",
+      "type": "file",
+      "size": 5532
+    },
+    {
+      "path": "include/MapDrawer.h",
+      "type": "file",
+      "size": 2400
+    },
+    {
+      "path": "include/MapPoint.h",
+      "type": "file",
+      "size": 7235
+    },
+    {
+      "path": "include/ORBVocabulary.h",
+      "type": "file",
+      "size": 1230
+    },
+    {
+      "path": "include/ORBextractor.h",
+      "type": "file",
+      "size": 3369
+    },
+    {
+      "path": "include/ORBmatcher.h",
+      "type": "file",
+      "size": 5273
+    },
+    {
+      "path": "include/OptimizableTypes.h",
+      "type": "file",
+      "size": 6954
+    },
+    {
+      "path": "include/Optimizer.h",
+      "type": "file",
+      "size": 5684
+    },
+    {
+      "path": "include/SerializationUtils.h",
+      "type": "file",
+      "size": 4448
+    },
+    {
+      "path": "include/Settings.h",
+      "type": "file",
+      "size": 7355
+    },
+    {
+      "path": "include/Sim3Solver.h",
+      "type": "file",
+      "size": 3997
+    },
+    {
+      "path": "include/System.h",
+      "type": "file",
+      "size": 8470
+    },
+    {
+      "path": "include/Tracking.h",
+      "type": "file",
+      "size": 10095
+    },
+    {
+      "path": "include/TwoViewReconstruction.h",
+      "type": "file",
+      "size": 4278
+    },
+    {
+      "path": "include/Viewer.h",
+      "type": "file",
+      "size": 2455
+    },
+    {
+      "path": "src/Atlas.cc",
+      "type": "file",
+      "size": 9724
+    },
+    {
+      "path": "src/CameraModels",
+      "type": "dir",
+      "size": null
+    },
+    {
+      "path": "src/Config.cc",
+      "type": "file",
+      "size": 1051
+    },
+    {
+      "path": "src/Converter.cc",
+      "type": "file",
+      "size": 8886
+    },
+    {
+      "path": "src/Frame.cc",
+      "type": "file",
+      "size": 40247
+    },
+    {
+      "path": "src/FrameDrawer.cc",
+      "type": "file",
+      "size": 13878
+    },
+    {
+      "path": "src/G2oTypes.cc",
+      "type": "file",
+      "size": 29027
+    },
+    {
+      "path": "src/GeometricTools.cc",
+      "type": "file",
+      "size": 2543
+    },
+    {
+      "path": "src/ImuTypes.cc",
+      "type": "file",
+      "size": 11461
+    },
+    {
+      "path": "src/KeyFrame.cc",
+      "type": "file",
+      "size": 32886
+    },
+    {
+      "path": "src/KeyFrameDatabase.cc",
+      "type": "file",
+      "size": 28605
+    },
+    {
+      "path": "src/LocalMapping.cc",
+      "type": "file",
+      "size": 51110
+    },
+    {
+      "path": "src/LoopClosing.cc",
+      "type": "file",
+      "size": 96903
+    },
+    {
+      "path": "src/MLPnPsolver.cpp",
+      "type": "file",
+      "size": 44124
+    },
+    {
+      "path": "src/Map.cc",
+      "type": "file",
+      "size": 11798
+    },
+    {
+      "path": "src/MapDrawer.cc",
+      "type": "file",
+      "size": 12955
+    },
+    {
+      "path": "src/MapPoint.cc",
+      "type": "file",
+      "size": 18298
+    },
+    {
+      "path": "src/ORBextractor.cc",
+      "type": "file",
+      "size": 53344
+    },
+    {
+      "path": "src/ORBmatcher.cc",
+      "type": "file",
+      "size": 74106
+    },
+    {
+      "path": "src/OptimizableTypes.cpp",
+      "type": "file",
+      "size": 10042
+    },
+    {
+      "path": "src/Optimizer.cc",
+      "type": "file",
+      "size": 193395
+    },
+    {
+      "path": "src/Settings.cc",
+      "type": "file",
+      "size": 27056
+    },
+    {
+      "path": "src/Sim3Solver.cc",
+      "type": "file",
+      "size": 13246
+    },
+    {
+      "path": "src/System.cc",
+      "type": "file",
+      "size": 51888
+    },
+    {
+      "path": "src/Tracking.cc",
+      "type": "file",
+      "size": 138424
+    },
+    {
+      "path": "src/TwoViewReconstruction.cc",
+      "type": "file",
+      "size": 28912
+    },
+    {
+      "path": "src/Viewer.cc",
+      "type": "file",
+      "size": 13012
+    },
+    {
+      "path": "Examples/Calibration/python_scripts",
+      "type": "dir",
+      "size": null
+    },
+    {
+      "path": "Examples/Calibration/recorder_empty",
+      "type": "dir",
+      "size": null
+    },
+    {
+      "path": "Examples/Calibration/recorder_realsense_D435i.cc",
+      "type": "file",
+      "size": 9574
+    },
+    {
+      "path": "Examples/Calibration/recorder_realsense_T265.cc",
+      "type": "file",
+      "size": 9829
+    },
+    {
+      "path": "Examples/Monocular-Inertial/EuRoC.yaml",
+      "type": "file",
+      "size": 2560
+    },
+    {
+      "path": "Examples/Monocular-Inertial/EuRoC_IMU",
+      "type": "dir",
+      "size": null
+    },
+    {
+      "path": "Examples/Monocular-Inertial/EuRoC_TimeStamps",
+      "type": "dir",
+      "size": null
+    },
+    {
+      "path": "Examples/Monocular-Inertial/RealSense_D435i.yaml",
+      "type": "file",
+      "size": 2458
+    },
+    {
+      "path": "Examples/Monocular-Inertial/RealSense_T265.yaml",
+      "type": "file",
+      "size": 2775
+    },
+    {
+      "path": "Examples/Monocular-Inertial/TUM-VI.yaml",
+      "type": "file",
+      "size": 2788
+    },
+    {
+      "path": "Examples/Monocular-Inertial/TUM-VI_far.yaml",
+      "type": "file",
+      "size": 2960
+    },
+    {
+      "path": "Examples/Monocular-Inertial/TUM_IMU",
+      "type": "dir",
+      "size": null
+    },
+    {
+      "path": "Examples/Monocular-Inertial/TUM_TimeStamps",
+      "type": "dir",
+      "size": null
+    },
+    {
+      "path": "Examples/Monocular-Inertial/mono_inertial_euroc.cc",
+      "type": "file",
+      "size": 10220
+    },
+    {
+      "path": "Examples/Monocular-Inertial/mono_inertial_realsense_D435i.cc",
+      "type": "file",
+      "size": 16420
+    },
+    {
+      "path": "Examples/Monocular-Inertial/mono_inertial_realsense_t265.cc",
+      "type": "file",
+      "size": 14186
+    },
+    {
+      "path": "Examples/Monocular-Inertial/mono_inertial_tum_vi.cc",
+      "type": "file",
+      "size": 11629
+    },
+    {
+      "path": "Examples/Monocular/EuRoC.yaml",
+      "type": "file",
+      "size": 2625
+    },
+    {
+      "path": "Examples/Monocular/EuRoC_TimeStamps",
+      "type": "dir",
+      "size": null
+    },
+    {
+      "path": "Examples/Monocular/KITTI00-02.yaml",
+      "type": "file",
+      "size": 1944
+    },
+    {
+      "path": "Examples/Monocular/KITTI03.yaml",
+      "type": "file",
+      "size": 1945
+    },
+    {
+      "path": "Examples/Monocular/KITTI04-12.yaml",
+      "type": "file",
+      "size": 1946
+    },
+    {
+      "path": "Examples/Monocular/RealSense_D435i.yaml",
+      "type": "file",
+      "size": 1966
+    },
+    {
+      "path": "Examples/Monocular/RealSense_T265.yaml",
+      "type": "file",
+      "size": 2114
+    },
+    {
+      "path": "Examples/Monocular/TUM-VI.yaml",
+      "type": "file",
+      "size": 2141
+    },
+    {
+      "path": "Examples/Monocular/TUM1.yaml",
+      "type": "file",
+      "size": 1995
+    },
+    {
+      "path": "Examples/Monocular/TUM2.yaml",
+      "type": "file",
+      "size": 1996
+    },
+    {
+      "path": "Examples/Monocular/TUM3.yaml",
+      "type": "file",
+      "size": 1932
+    },
+    {
+      "path": "Examples/Monocular/TUM_TimeStamps",
+      "type": "dir",
+      "size": null
+    },
+    {
+      "path": "Examples/Monocular/mono_euroc.cc",
+      "type": "file",
+      "size": 7623
+    },
+    {
+      "path": "Examples/Monocular/mono_kitti.cc",
+      "type": "file",
+      "size": 6012
+    },
+    {
+      "path": "Examples/Monocular/mono_realsense_D435i.cc",
+      "type": "file",
+      "size": 10397
+    },
+    {
+      "path": "Examples/Monocular/mono_realsense_t265.cc",
+      "type": "file",
+      "size": 5767
+    },
+    {
+      "path": "Examples/Monocular/mono_tum.cc",
+      "type": "file",
+      "size": 5807
+    },
+    {
+      "path": "Examples/Monocular/mono_tum_vi.cc",
+      "type": "file",
+      "size": 7978
+    },
+    {
+      "path": "Examples/RGB-D-Inertial/RealSense_D435i.yaml",
+      "type": "file",
+      "size": 2655
+    },
+    {
+      "path": "Examples/RGB-D-Inertial/rgbd_inertial_realsense_D435i.cc",
+      "type": "file",
+      "size": 19868
+    },
+    {
+      "path": "Examples/RGB-D/RealSense_D435i.yaml",
+      "type": "file",
+      "size": 2101
+    },
+    {
+      "path": "Examples/RGB-D/TUM1.yaml",
+      "type": "file",
+      "size": 2127
+    },
+    {
+      "path": "Examples/RGB-D/TUM2.yaml",
+      "type": "file",
+      "size": 2110
+    },
+    {
+      "path": "Examples/RGB-D/TUM3.yaml",
+      "type": "file",
+      "size": 2045
+    },
+    {
+      "path": "Examples/RGB-D/associations",
+      "type": "dir",
+      "size": null
+    },
+    {
+      "path": "Examples/RGB-D/rgbd_realsense_D435i.cc",
+      "type": "file",
+      "size": 16271
+    },
+    {
+      "path": "Examples/RGB-D/rgbd_tum.cc",
+      "type": "file",
+      "size": 5758
+    },
+    {
+      "path": "Examples/Stereo-Inertial/EuRoC.yaml",
+      "type": "file",
+      "size": 3746
+    },
+    {
+      "path": "Examples/Stereo-Inertial/EuRoC_IMU",
+      "type": "dir",
+      "size": null
+    },
+    {
+      "path": "Examples/Stereo-Inertial/EuRoC_TimeStamps",
+      "type": "dir",
+      "size": null
+    },
+    {
+      "path": "Examples/Stereo-Inertial/RealSense_D435i.yaml",
+      "type": "file",
+      "size": 2461
+    },
+    {
+      "path": "Examples/Stereo-Inertial/RealSense_T265.yaml",
+      "type": "file",
+      "size": 3901
+    },
+    {
+      "path": "Examples/Stereo-Inertial/TUM-VI.yaml",
+      "type": "file",
+      "size": 3900
+    },
+    {
+      "path": "Examples/Stereo-Inertial/TUM-VI_far.yaml",
+      "type": "file",
+      "size": 4184
+    },
+    {
+      "path": "Examples/Stereo-Inertial/TUM_IMU",
+      "type": "dir",
+      "size": null
+    },
+    {
+      "path": "Examples/Stereo-Inertial/TUM_TimeStamps",
+      "type": "dir",
+      "size": null
+    },
+    {
+      "path": "Examples/Stereo-Inertial/stereo_inertial_euroc.cc",
+      "type": "file",
+      "size": 9992
+    },
+    {
+      "path": "Examples/Stereo-Inertial/stereo_inertial_realsense_D435i.cc",
+      "type": "file",
+      "size": 18202
+    },
+    {
+      "path": "Examples/Stereo-Inertial/stereo_inertial_realsense_t265.cc",
+      "type": "file",
+      "size": 12929
+    },
+    {
+      "path": "Examples/Stereo-Inertial/stereo_inertial_tum_vi.cc",
+      "type": "file",
+      "size": 12435
+    },
+    {
+      "path": "Examples/Stereo/EuRoC.yaml",
+      "type": "file",
+      "size": 3176
+    },
+    {
+      "path": "Examples/Stereo/EuRoC_TimeStamps",
+      "type": "dir",
+      "size": null
+    },
+    {
+      "path": "Examples/Stereo/KITTI00-02.yaml",
+      "type": "file",
+      "size": 1939
+    },
+    {
+      "path": "Examples/Stereo/KITTI03.yaml",
+      "type": "file",
+      "size": 1942
+    },
+    {
+      "path": "Examples/Stereo/KITTI04-12.yaml",
+      "type": "file",
+      "size": 1943
+    },
+    {
+      "path": "Examples/Stereo/RealSense_D435i.yaml",
+      "type": "file",
+      "size": 1966
+    },
+    {
+      "path": "Examples/Stereo/RealSense_T265.yaml",
+      "type": "file",
+      "size": 3021
+    },
+    {
+      "path": "Examples/Stereo/TUM-VI.yaml",
+      "type": "file",
+      "size": 3036
+    },
+    {
+      "path": "Examples/Stereo/TUM_TimeStamps",
+      "type": "dir",
+      "size": null
+    },
+    {
+      "path": "Examples/Stereo/stereo_euroc.cc",
+      "type": "file",
+      "size": 6938
+    },
+    {
+      "path": "Examples/Stereo/stereo_kitti.cc",
+      "type": "file",
+      "size": 6448
+    },
+    {
+      "path": "Examples/Stereo/stereo_realsense_D435i.cc",
+      "type": "file",
+      "size": 12131
+    },
+    {
+      "path": "Examples/Stereo/stereo_realsense_t265.cc",
+      "type": "file",
+      "size": 6465
+    },
+    {
+      "path": "Examples/Stereo/stereo_tum_vi.cc",
+      "type": "file",
+      "size": 10001
+    },
+    {
+      "path": "Examples_old/Monocular-Inertial/EuRoC.yaml",
+      "type": "file",
+      "size": 2470
+    },
+    {
+      "path": "Examples_old/Monocular-Inertial/EuRoC_IMU",
+      "type": "dir",
+      "size": null
+    },
+    {
+      "path": "Examples_old/Monocular-Inertial/EuRoC_TimeStamps",
+      "type": "dir",
+      "size": null
+    },
+    {
+      "path": "Examples_old/Monocular-Inertial/MultiSession",
+      "type": "dir",
+      "size": null
+    },
+    {
+      "path": "Examples_old/Monocular-Inertial/RealSense_D435i.yaml",
+      "type": "file",
+      "size": 2652
+    },
+    {
+      "path": "Examples_old/Monocular-Inertial/RealSense_T265.yaml",
+      "type": "file",
+      "size": 2864
+    },
+    {
+      "path": "Examples_old/Monocular-Inertial/TUM-VI.yaml",
+      "type": "file",
+      "size": 3424
+    },
+    {
+      "path": "Examples_old/Monocular-Inertial/TUM-VI_far.yaml",
+      "type": "file",
+      "size": 3590
+    },
+    {
+      "path": "Examples_old/Monocular-Inertial/TUM_IMU",
+      "type": "dir",
+      "size": null
+    },
+    {
+      "path": "Examples_old/Monocular-Inertial/TUM_TimeStamps",
+      "type": "dir",
+      "size": null
+    },
+    {
+      "path": "Examples_old/Monocular-Inertial/mono_inertial_euroc.cc",
+      "type": "file",
+      "size": 10219
+    },
+    {
+      "path": "Examples_old/Monocular-Inertial/mono_inertial_realsense_D435i.cc",
+      "type": "file",
+      "size": 16420
+    },
+    {
+      "path": "Examples_old/Monocular-Inertial/mono_inertial_realsense_t265.cc",
+      "type": "file",
+      "size": 14186
+    },
+    {
+      "path": "Examples_old/Monocular-Inertial/mono_inertial_tum_vi.cc",
+      "type": "file",
+      "size": 11629
+    },
+    {
+      "path": "Examples_old/Monocular/EuRoC.yaml",
+      "type": "file",
+      "size": 2681
+    },
+    {
+      "path": "Examples_old/Monocular/EuRoC_TimeStamps",
+      "type": "dir",
+      "size": null
+    },
+    {
+      "path": "Examples_old/Monocular/KITTI00-02.yaml",
+      "type": "file",
+      "size": 1902
+    },
+    {
+      "path": "Examples_old/Monocular/KITTI03.yaml",
+      "type": "file",
+      "size": 1903
+    },
+    {
+      "path": "Examples_old/Monocular/KITTI04-12.yaml",
+      "type": "file",
+      "size": 1904
+    },
+    {
+      "path": "Examples_old/Monocular/MultiSession",
+      "type": "dir",
+      "size": null
+    },
+    {
+      "path": "Examples_old/Monocular/RealSense_D435i.yaml",
+      "type": "file",
+      "size": 2172
+    },
+    {
+      "path": "Examples_old/Monocular/RealSense_T265.yaml",
+      "type": "file",
+      "size": 2204
+    },
+    {
+      "path": "Examples_old/Monocular/TUM-VI.yaml",
+      "type": "file",
+      "size": 2381
+    },
+    {
+      "path": "Examples_old/Monocular/TUM1.yaml",
+      "type": "file",
+      "size": 1956
+    },
+    {
+      "path": "Examples_old/Monocular/TUM2.yaml",
+      "type": "file",
+      "size": 1957
+    },
+    {
+      "path": "Examples_old/Monocular/TUM3.yaml",
+      "type": "file",
+      "size": 1894
+    },
+    {
+      "path": "Examples_old/Monocular/TUM_TimeStamps",
+      "type": "dir",
+      "size": null
+    },
+    {
+      "path": "Examples_old/Monocular/mono_euroc.cc",
+      "type": "file",
+      "size": 7623
+    },
+    {
+      "path": "Examples_old/Monocular/mono_kitti.cc",
+      "type": "file",
+      "size": 6012
+    },
+    {
+      "path": "Examples_old/Monocular/mono_realsense_D435i.cc",
+      "type": "file",
+      "size": 10397
+    },
+    {
+      "path": "Examples_old/Monocular/mono_realsense_t265.cc",
+      "type": "file",
+      "size": 5767
+    },
+    {
+      "path": "Examples_old/Monocular/mono_tum.cc",
+      "type": "file",
+      "size": 5807
+    },
+    {
+      "path": "Examples_old/Monocular/mono_tum_vi.cc",
+      "type": "file",
+      "size": 7978
+    },
+    {
+      "path": "Examples_old/RGB-D-Inertial/RealSense_D435i.yaml",
+      "type": "file",
+      "size": 2797
+    },
+    {
+      "path": "Examples_old/RGB-D-Inertial/rgbd_inertial_realsense_D435i.cc",
+      "type": "file",
+      "size": 19868
+    },
+    {
+      "path": "Examples_old/RGB-D/RealSense_D435i.yaml",
+      "type": "file",
+      "size": 2694
+    },
+    {
+      "path": "Examples_old/RGB-D/TUM1.yaml",
+      "type": "file",
+      "size": 2116
+    },
+    {
+      "path": "Examples_old/RGB-D/TUM2.yaml",
+      "type": "file",
+      "size": 2100
+    },
+    {
+      "path": "Examples_old/RGB-D/TUM3.yaml",
+      "type": "file",
+      "size": 2035
+    },
+    {
+      "path": "Examples_old/RGB-D/associations",
+      "type": "dir",
+      "size": null
+    },
+    {
+      "path": "Examples_old/RGB-D/rgbd_realsense_D435i.cc",
+      "type": "file",
+      "size": 16271
+    },
+    {
+      "path": "Examples_old/RGB-D/rgbd_tum.cc",
+      "type": "file",
+      "size": 5758
+    },
+    {
+      "path": "Examples_old/ROS/ORB_SLAM3",
+      "type": "dir",
+      "size": null
+    },
+    {
+      "path": "Examples_old/Stereo-Inertial/EuRoC.yaml",
+      "type": "file",
+      "size": 4624
+    },
+    {
+      "path": "Examples_old/Stereo-Inertial/EuRoC_IMU",
+      "type": "dir",
+      "size": null
+    },
+    {
+      "path": "Examples_old/Stereo-Inertial/EuRoC_TimeStamps",
+      "type": "dir",
+      "size": null
+    },
+    {
+      "path": "Examples_old/Stereo-Inertial/MultiSession",
+      "type": "dir",
+      "size": null
+    },
+    {
+      "path": "Examples_old/Stereo-Inertial/RealSense_D435i.yaml",
+      "type": "file",
+      "size": 3055
+    },
+    {
+      "path": "Examples_old/Stereo-Inertial/RealSense_T265.yaml",
+      "type": "file",
+      "size": 3764
+    },
+    {
+      "path": "Examples_old/Stereo-Inertial/TUM-VI.yaml",
+      "type": "file",
+      "size": 3932
+    },
+    {
+      "path": "Examples_old/Stereo-Inertial/TUM-VI_far.yaml",
+      "type": "file",
+      "size": 3838
+    },
+    {
+      "path": "Examples_old/Stereo-Inertial/TUM_IMU",
+      "type": "dir",
+      "size": null
+    },
+    {
+      "path": "Examples_old/Stereo-Inertial/TUM_TimeStamps",
+      "type": "dir",
+      "size": null
+    },
+    {
+      "path": "Examples_old/Stereo-Inertial/stereo_inertial_euroc.cc",
+      "type": "file",
+      "size": 13229
+    },
+    {
+      "path": "Examples_old/Stereo-Inertial/stereo_inertial_realsense_D435i.cc",
+      "type": "file",
+      "size": 18202
+    },
+    {
+      "path": "Examples_old/Stereo-Inertial/stereo_inertial_realsense_t265.cc",
+      "type": "file",
+      "size": 12929
+    },
+    {
+      "path": "Examples_old/Stereo-Inertial/stereo_inertial_tum_vi.cc",
+      "type": "file",
+      "size": 12435
+    },
+    {
+      "path": "Examples_old/Stereo/EuRoC.yaml",
+      "type": "file",
+      "size": 4487
+    },
+    {
+      "path": "Examples_old/Stereo/EuRoC_TimeStamps",
+      "type": "dir",
+      "size": null
+    },
+    {
+      "path": "Examples_old/Stereo/KITTI00-02.yaml",
+      "type": "file",
+      "size": 2005
+    },
+    {
+      "path": "Examples_old/Stereo/KITTI03.yaml",
+      "type": "file",
+      "size": 1985
+    },
+    {
+      "path": "Examples_old/Stereo/KITTI04-12.yaml",
+      "type": "file",
+      "size": 2006
+    },
+    {
+      "path": "Examples_old/Stereo/MultiSession",
+      "type": "dir",
+      "size": null
+    },
+    {
+      "path": "Examples_old/Stereo/RealSense_D435i.yaml",
+      "type": "file",
+      "size": 2577
+    },
+    {
+      "path": "Examples_old/Stereo/RealSense_T265.yaml",
+      "type": "file",
+      "size": 3114
+    },
+    {
+      "path": "Examples_old/Stereo/TUM-VI.yaml",
+      "type": "file",
+      "size": 3230
+    },
+    {
+      "path": "Examples_old/Stereo/TUM_TimeStamps",
+      "type": "dir",
+      "size": null
+    },
+    {
+      "path": "Examples_old/Stereo/stereo_euroc.cc",
+      "type": "file",
+      "size": 10578
+    },
+    {
+      "path": "Examples_old/Stereo/stereo_kitti.cc",
+      "type": "file",
+      "size": 6448
+    },
+    {
+      "path": "Examples_old/Stereo/stereo_realsense_D435i.cc",
+      "type": "file",
+      "size": 12131
+    },
+    {
+      "path": "Examples_old/Stereo/stereo_realsense_t265.cc",
+      "type": "file",
+      "size": 6465
+    },
+    {
+      "path": "Examples_old/Stereo/stereo_tum_vi.cc",
+      "type": "file",
+      "size": 10002
+    },
+    {
+      "path": "Thirdparty/DBoW2/CMakeLists.txt",
+      "type": "file",
+      "size": 1017
+    },
+    {
+      "path": "Thirdparty/DBoW2/DBoW2",
+      "type": "dir",
+      "size": null
+    },
+    {
+      "path": "Thirdparty/DBoW2/DUtils",
+      "type": "dir",
+      "size": null
+    },
+    {
+      "path": "Thirdparty/DBoW2/README.txt",
+      "type": "file",
+      "size": 443
+    },
+    {
+      "path": "Thirdparty/Sophus/.clang-format",
+      "type": "file",
+      "size": 2581
+    },
+    {
+      "path": "Thirdparty/Sophus/.gitignore",
+      "type": "file",
+      "size": 53
+    },
+    {
+      "path": "Thirdparty/Sophus/.travis.yml",
+      "type": "file",
+      "size": 2788
+    },
+    {
+      "path": "Thirdparty/Sophus/CMakeLists.txt",
+      "type": "file",
+      "size": 4720
+    },
+    {
+      "path": "Thirdparty/Sophus/LICENSE.txt",
+      "type": "file",
+      "size": 1107
+    },
+    {
+      "path": "Thirdparty/Sophus/README.rst",
+      "type": "file",
+      "size": 1492
+    },
+    {
+      "path": "Thirdparty/Sophus/SophusConfig.cmake.in",
+      "type": "file",
+      "size": 131
+    },
+    {
+      "path": "Thirdparty/Sophus/appveyor.yml",
+      "type": "file",
+      "size": 527
+    },
+    {
+      "path": "Thirdparty/Sophus/doxyrest-config.lua",
+      "type": "file",
+      "size": 658
+    },
+    {
+      "path": "Thirdparty/Sophus/examples",
+      "type": "dir",
+      "size": null
+    },
+    {
+      "path": "Thirdparty/Sophus/make_docs.sh",
+      "type": "file",
+      "size": 124
+    },
+    {
+      "path": "Thirdparty/Sophus/package.xml",
+      "type": "file",
+      "size": 647
+    },
+    {
+      "path": "Thirdparty/Sophus/py",
+      "type": "dir",
+      "size": null
+    },
+    {
+      "path": "Thirdparty/Sophus/rst-dir",
+      "type": "dir",
+      "size": null
+    },
+    {
+      "path": "Thirdparty/Sophus/run_format.sh",
+      "type": "file",
+      "size": 153
+    },
+    {
+      "path": "Thirdparty/Sophus/scripts",
+      "type": "dir",
+      "size": null
+    },
+    {
+      "path": "Thirdparty/Sophus/sophus",
+      "type": "dir",
+      "size": null
+    },
+    {
+      "path": "Thirdparty/Sophus/test",
+      "type": "dir",
+      "size": null
+    },
+    {
+      "path": "Thirdparty/g2o/CMakeLists.txt",
+      "type": "file",
+      "size": 5811
+    },
+    {
+      "path": "Thirdparty/g2o/README.txt",
+      "type": "file",
+      "size": 243
+    },
+    {
+      "path": "Thirdparty/g2o/config.h.in",
+      "type": "file",
+      "size": 384
+    },
+    {
+      "path": "Thirdparty/g2o/g2o",
+      "type": "dir",
+      "size": null
+    },
+    {
+      "path": "Thirdparty/g2o/license-bsd.txt",
+      "type": "file",
+      "size": 1401
+    },
+    {
+      "path": "evaluation/Ground_truth/EuRoC_imu",
+      "type": "dir",
+      "size": null
+    },
+    {
+      "path": "evaluation/Ground_truth/EuRoC_left_cam",
+      "type": "dir",
+      "size": null
+    },
+    {
+      "path": "include/CameraModels/GeometricCamera.h",
+      "type": "file",
+      "size": 4130
+    },
+    {
+      "path": "include/CameraModels/KannalaBrandt8.h",
+      "type": "file",
+      "size": 4824
+    },
+    {
+      "path": "include/CameraModels/Pinhole.h",
+      "type": "file",
+      "size": 3803
+    },
+    {
+      "path": "src/CameraModels/KannalaBrandt8.cpp",
+      "type": "file",
+      "size": 16472
+    },
+    {
+      "path": "src/CameraModels/Pinhole.cpp",
+      "type": "file",
+      "size": 6011
+    },
+    {
+      "path": "Examples/Calibration/python_scripts/process_imu.py",
+      "type": "file",
+      "size": 5951
+    },
+    {
+      "path": "Examples/Calibration/recorder_empty/april_6x6_80x80cm_larues.yaml",
+      "type": "file",
+      "size": 263
+    },
+    {
+      "path": "Examples/Monocular-Inertial/EuRoC_IMU/MH01.txt",
+      "type": "file",
+      "size": 5210832
+    },
+    {
+      "path": "Examples/Monocular-Inertial/EuRoC_IMU/MH02.txt",
+      "type": "file",
+      "size": 4302332
+    },
+    {
+      "path": "Examples/Monocular-Inertial/EuRoC_IMU/MH03.txt",
+      "type": "file",
+      "size": 3815432
+    },
+    {
+      "path": "Examples/Monocular-Inertial/EuRoC_IMU/MH04.txt",
+      "type": "file",
+      "size": 2871307
+    },
+    {
+      "path": "Examples/Monocular-Inertial/EuRoC_IMU/MH05.txt",
+      "type": "file",
+      "size": 3215270
+    },
+    {
+      "path": "Examples/Monocular-Inertial/EuRoC_IMU/V101.txt",
+      "type": "file",
+      "size": 4113500
+    },
+    {
+      "path": "Examples/Monocular-Inertial/EuRoC_IMU/V102.txt",
+      "type": "file",
+      "size": 2405855
+    },
+    {
+      "path": "Examples/Monocular-Inertial/EuRoC_IMU/V103.txt",
+      "type": "file",
+      "size": 3024020
+    },
+    {
+      "path": "Examples/Monocular-Inertial/EuRoC_IMU/V201.txt",
+      "type": "file",
+      "size": 3217729
+    },
+    {
+      "path": "Examples/Monocular-Inertial/EuRoC_IMU/V202.txt",
+      "type": "file",
+      "size": 3305153
+    },
+    {
+      "path": "Examples/Monocular-Inertial/EuRoC_IMU/V203.txt",
+      "type": "file",
+      "size": 3283929
+    },
+    {
+      "path": "Examples/Monocular-Inertial/EuRoC_TimeStamps/MH01.txt",
+      "type": "file",
+      "size": 73640
+    },
+    {
+      "path": "Examples/Monocular-Inertial/EuRoC_TimeStamps/MH02.txt",
+      "type": "file",
+      "size": 60800
+    },
+    {
+      "path": "Examples/Monocular-Inertial/EuRoC_TimeStamps/MH03.txt",
+      "type": "file",
+      "size": 54000
+    },
+    {
+      "path": "Examples/Monocular-Inertial/EuRoC_TimeStamps/MH04.txt",
+      "type": "file",
+      "size": 40660
+    },
+    {
+      "path": "Examples/Monocular-Inertial/EuRoC_TimeStamps/MH05.txt",
+      "type": "file",
+      "size": 45460
+    },
+    {
+      "path": "Examples/Monocular-Inertial/EuRoC_TimeStamps/V101.txt",
+      "type": "file",
+      "size": 58240
+    },
+    {
+      "path": "Examples/Monocular-Inertial/EuRoC_TimeStamps/V102.txt",
+      "type": "file",
+      "size": 34200
+    },
+    {
+      "path": "Examples/Monocular-Inertial/EuRoC_TimeStamps/V103.txt",
+      "type": "file",
+      "size": 42980
+    },
+    {
+      "path": "Examples/Monocular-Inertial/EuRoC_TimeStamps/V201.txt",
+      "type": "file",
+      "size": 45600
+    },
+    {
+      "path": "Examples/Monocular-Inertial/EuRoC_TimeStamps/V202.txt",
+      "type": "file",
+      "size": 46960
+    },
+    {
+      "path": "Examples/Monocular-Inertial/EuRoC_TimeStamps/V203.txt",
+      "type": "file",
+      "size": 38440
+    },
+    {
+      "path": "Examples/Monocular-Inertial/TUM_IMU/dataset-corridor1_512.txt",
+      "type": "file",
+      "size": 6034922
+    },
+    {
+      "path": "Examples/Monocular-Inertial/TUM_IMU/dataset-corridor2_1024.txt",
+      "type": "file",
+      "size": 6807522
+    },
+    {
+      "path": "Examples/Monocular-Inertial/TUM_IMU/dataset-corridor2_512.txt",
+      "type": "file",
+      "size": 6807522
+    },
+    {
+      "path": "Examples/Monocular-Inertial/TUM_IMU/dataset-corridor3_512.txt",
+      "type": "file",
+      "size": 5840957
+    },
+    {
+      "path": "Examples/Monocular-Inertial/TUM_IMU/dataset-corridor4_512.txt",
+      "type": "file",
+      "size": 1933733
+    },
+    {
+      "path": "Examples/Monocular-Inertial/TUM_IMU/dataset-corridor5_512.txt",
+      "type": "file",
+      "size": 5957023
+    },
+    {
+      "path": "Examples/Monocular-Inertial/TUM_IMU/dataset-magistrale1_512.txt",
+      "type": "file",
+      "size": 15626971
+    },
+    {
+      "path": "Examples/Monocular-Inertial/TUM_IMU/dataset-magistrale2_512.txt",
+      "type": "file",
+      "size": 10941633
+    },
+    {
+      "path": "Examples/Monocular-Inertial/TUM_IMU/dataset-magistrale3_512.txt",
+      "type": "file",
+      "size": 9809793
+    },
+    {
+      "path": "Examples/Monocular-Inertial/TUM_IMU/dataset-magistrale4_512.txt",
+      "type": "file",
+      "size": 12609311
+    },
+    {
+      "path": "Examples/Monocular-Inertial/TUM_IMU/dataset-magistrale5_512.txt",
+      "type": "file",
+      "size": 8999871
+    },
+    {
+      "path": "Examples/Monocular-Inertial/TUM_IMU/dataset-magistrale6_512.txt",
+      "type": "file",
+      "size": 11582541
+    },
+    {
+      "path": "Examples/Monocular-Inertial/TUM_IMU/dataset-outdoors1_512.txt",
+      "type": "file",
+      "size": 25938882
+    },
+    {
+      "path": "Examples/Monocular-Inertial/TUM_IMU/dataset-outdoors2_512.txt",
+      "type": "file",
+      "size": 18679273
+    },
+    {
+      "path": "Examples/Monocular-Inertial/TUM_IMU/dataset-outdoors3_512.txt",
+      "type": "file",
+      "size": 17083048
+    },
+    {
+      "path": "Examples/Monocular-Inertial/TUM_IMU/dataset-outdoors4_512.txt",
+      "type": "file",
+      "size": 14166494
+    },
+    {
+      "path": "Examples/Monocular-Inertial/TUM_IMU/dataset-outdoors5_512.txt",
+      "type": "file",
+      "size": 17959626
+    },
+    {
+      "path": "Examples/Monocular-Inertial/TUM_IMU/dataset-outdoors6_512.txt",
+      "type": "file",
+      "size": 29749189
+    },
+    {
+      "path": "Examples/Monocular-Inertial/TUM_IMU/dataset-outdoors7_512.txt",
+      "type": "file",
+      "size": 22543465
+    },
+    {
+      "path": "Examples/Monocular-Inertial/TUM_IMU/dataset-outdoors8_512.txt",
+      "type": "file",
+      "size": 16388213
+    },
+    {
+      "path": "Examples/Monocular-Inertial/TUM_IMU/dataset-room1_512.txt",
+      "type": "file",
+      "size": 2831804
+    },
+    {
+      "path": "Examples/Monocular-Inertial/TUM_IMU/dataset-room2_512.txt",
+      "type": "file",
+      "size": 2874197
+    },
+    {
+      "path": "Examples/Monocular-Inertial/TUM_IMU/dataset-room3_512.txt",
+      "type": "file",
+      "size": 2832266
+    },
+    {
+      "path": "Examples/Monocular-Inertial/TUM_IMU/dataset-room4_512.txt",
+      "type": "file",
+      "size": 2232296
+    },
+    {
+      "path": "Examples/Monocular-Inertial/TUM_IMU/dataset-room5_512.txt",
+      "type": "file",
+      "size": 2859836
+    },
+    {
+      "path": "Examples/Monocular-Inertial/TUM_IMU/dataset-room6_512.txt",
+      "type": "file",
+      "size": 2637332
+    },
+    {
+      "path": "Examples/Monocular-Inertial/TUM_IMU/dataset-slides1_512.txt",
+      "type": "file",
+      "size": 5637446
+    },
+    {
+      "path": "Examples/Monocular-Inertial/TUM_IMU/dataset-slides2_512.txt",
+      "type": "file",
+      "size": 4925437
+    },
+    {
+      "path": "Examples/Monocular-Inertial/TUM_IMU/dataset-slides3_512.txt",
+      "type": "file",
+      "size": 7300651
+    },
+    {
+      "path": "Examples/Monocular-Inertial/TUM_TimeStamps/dataset-corridor1_512.txt",
+      "type": "file",
+      "size": 119800
+    },
+    {
+      "path": "Examples/Monocular-Inertial/TUM_TimeStamps/dataset-corridor2_1024.txt",
+      "type": "file",
+      "size": 135471
+    },
+    {
+      "path": "Examples/Monocular-Inertial/TUM_TimeStamps/dataset-corridor2_512.txt",
+      "type": "file",
+      "size": 135440
+    },
+    {
+      "path": "Examples/Monocular-Inertial/TUM_TimeStamps/dataset-corridor3_512.txt",
+      "type": "file",
+      "size": 116040
+    },
+    {
+      "path": "Examples/Monocular-Inertial/TUM_TimeStamps/dataset-corridor4_512.txt",
+      "type": "file",
+      "size": 38540
+    },
+    {
+      "path": "Examples/Monocular-Inertial/TUM_TimeStamps/dataset-corridor5_512.txt",
+      "type": "file",
+      "size": 118280
+    },
+    {
+      "path": "Examples/Monocular-Inertial/TUM_TimeStamps/dataset-magistrale1_512.txt",
+      "type": "file",
+      "size": 308940
+    },
+    {
+      "path": "Examples/Monocular-Inertial/TUM_TimeStamps/dataset-magistrale2_512.txt",
+      "type": "file",
+      "size": 216200
+    },
+    {
+      "path": "Examples/Monocular-Inertial/TUM_TimeStamps/dataset-magistrale3_512.txt",
+      "type": "file",
+      "size": 194060
+    },
+    {
+      "path": "Examples/Monocular-Inertial/TUM_TimeStamps/dataset-magistrale4_512.txt",
+      "type": "file",
+      "size": 249600
+    },
+    {
+      "path": "Examples/Monocular-Inertial/TUM_TimeStamps/dataset-magistrale5_512.txt",
+      "type": "file",
+      "size": 178440
+    },
+    {
+      "path": "Examples/Monocular-Inertial/TUM_TimeStamps/dataset-magistrale6_512.txt",
+      "type": "file",
+      "size": 229940
+    },
+    {
+      "path": "Examples/Monocular-Inertial/TUM_TimeStamps/dataset-outdoors1_512.txt",
+      "type": "file",
+      "size": 512620
+    },
+    {
+      "path": "Examples/Monocular-Inertial/TUM_TimeStamps/dataset-outdoors2_512.txt",
+      "type": "file",
+      "size": 368980
+    },
+    {
+      "path": "Examples/Monocular-Inertial/TUM_TimeStamps/dataset-outdoors3_512.txt",
+      "type": "file",
+      "size": 337620
+    },
+    {
+      "path": "Examples/Monocular-Inertial/TUM_TimeStamps/dataset-outdoors4_512.txt",
+      "type": "file",
+      "size": 279980
+    },
+    {
+      "path": "Examples/Monocular-Inertial/TUM_TimeStamps/dataset-outdoors5_512.txt",
+      "type": "file",
+      "size": 354940
+    },
+    {
+      "path": "Examples/Monocular-Inertial/TUM_TimeStamps/dataset-outdoors6_512.txt",
+      "type": "file",
+      "size": 588060
+    },
+    {
+      "path": "Examples/Monocular-Inertial/TUM_TimeStamps/dataset-outdoors7_512.txt",
+      "type": "file",
+      "size": 448980
+    },
+    {
+      "path": "Examples/Monocular-Inertial/TUM_TimeStamps/dataset-outdoors8_512.txt",
+      "type": "file",
+      "size": 324260
+    },
+    {
+      "path": "Examples/Monocular-Inertial/TUM_TimeStamps/dataset-room1_512.txt",
+      "type": "file",
+      "size": 56420
+    },
+    {
+      "path": "Examples/Monocular-Inertial/TUM_TimeStamps/dataset-room2_512.txt",
+      "type": "file",
+      "size": 57640
+    },
+    {
+      "path": "Examples/Monocular-Inertial/TUM_TimeStamps/dataset-room3_512.txt",
+      "type": "file",
+      "size": 56420
+    },
+    {
+      "path": "Examples/Monocular-Inertial/TUM_TimeStamps/dataset-room4_512.txt",
+      "type": "file",
+      "size": 44560
+    },
+    {
+      "path": "Examples/Monocular-Inertial/TUM_TimeStamps/dataset-room5_512.txt",
+      "type": "file",
+      "size": 56940
+    },
+    {
+      "path": "Examples/Monocular-Inertial/TUM_TimeStamps/dataset-room6_512.txt",
+      "type": "file",
+      "size": 52720
+    },
+    {
+      "path": "Examples/Monocular-Inertial/TUM_TimeStamps/dataset-slides1_512.txt",
+      "type": "file",
+      "size": 111640
+    },
+    {
+      "path": "Examples/Monocular-Inertial/TUM_TimeStamps/dataset-slides2_512.txt",
+      "type": "file",
+      "size": 98160
+    },
+    {
+      "path": "Examples/Monocular-Inertial/TUM_TimeStamps/dataset-slides3_512.txt",
+      "type": "file",
+      "size": 144660
+    },
+    {
+      "path": "Examples/Monocular/EuRoC_TimeStamps/MH01.txt",
+      "type": "file",
+      "size": 73640
+    },
+    {
+      "path": "Examples/Monocular/EuRoC_TimeStamps/MH02.txt",
+      "type": "file",
+      "size": 60800
+    },
+    {
+      "path": "Examples/Monocular/EuRoC_TimeStamps/MH03.txt",
+      "type": "file",
+      "size": 54000
+    },
+    {
+      "path": "Examples/Monocular/EuRoC_TimeStamps/MH04.txt",
+      "type": "file",
+      "size": 40660
+    },
+    {
+      "path": "Examples/Monocular/EuRoC_TimeStamps/MH05.txt",
+      "type": "file",
+      "size": 45460
+    },
+    {
+      "path": "Examples/Monocular/EuRoC_TimeStamps/V101.txt",
+      "type": "file",
+      "size": 58240
+    },
+    {
+      "path": "Examples/Monocular/EuRoC_TimeStamps/V102.txt",
+      "type": "file",
+      "size": 34200
+    },
+    {
+      "path": "Examples/Monocular/EuRoC_TimeStamps/V103.txt",
+      "type": "file",
+      "size": 42980
+    },
+    {
+      "path": "Examples/Monocular/EuRoC_TimeStamps/V201.txt",
+      "type": "file",
+      "size": 45600
+    },
+    {
+      "path": "Examples/Monocular/EuRoC_TimeStamps/V202.txt",
+      "type": "file",
+      "size": 46960
+    },
+    {
+      "path": "Examples/Monocular/EuRoC_TimeStamps/V203.txt",
+      "type": "file",
+      "size": 38440
+    },
+    {
+      "path": "Examples/Monocular/TUM_TimeStamps/dataset-corridor1_512.txt",
+      "type": "file",
+      "size": 119800
+    },
+    {
+      "path": "Examples/Monocular/TUM_TimeStamps/dataset-corridor2_1024.txt",
+      "type": "file",
+      "size": 135471
+    },
+    {
+      "path": "Examples/Monocular/TUM_TimeStamps/dataset-corridor2_512.txt",
+      "type": "file",
+      "size": 135440
+    },
+    {
+      "path": "Examples/Monocular/TUM_TimeStamps/dataset-corridor3_512.txt",
+      "type": "file",
+      "size": 116040
+    },
+    {
+      "path": "Examples/Monocular/TUM_TimeStamps/dataset-corridor4_512.txt",
+      "type": "file",
+      "size": 38540
+    },
+    {
+      "path": "Examples/Monocular/TUM_TimeStamps/dataset-corridor5_512.txt",
+      "type": "file",
+      "size": 118280
+    },
+    {
+      "path": "Examples/Monocular/TUM_TimeStamps/dataset-magistrale1_512.txt",
+      "type": "file",
+      "size": 308940
+    },
+    {
+      "path": "Examples/Monocular/TUM_TimeStamps/dataset-magistrale2_512.txt",
+      "type": "file",
+      "size": 216200
+    },
+    {
+      "path": "Examples/Monocular/TUM_TimeStamps/dataset-magistrale3_512.txt",
+      "type": "file",
+      "size": 194060
+    },
+    {
+      "path": "Examples/Monocular/TUM_TimeStamps/dataset-magistrale4_512.txt",
+      "type": "file",
+      "size": 249600
+    },
+    {
+      "path": "Examples/Monocular/TUM_TimeStamps/dataset-magistrale5_512.txt",
+      "type": "file",
+      "size": 178440
+    },
+    {
+      "path": "Examples/Monocular/TUM_TimeStamps/dataset-magistrale6_512.txt",
+      "type": "file",
+      "size": 229940
+    },
+    {
+      "path": "Examples/Monocular/TUM_TimeStamps/dataset-outdoors1_512.txt",
+      "type": "file",
+      "size": 512620
+    },
+    {
+      "path": "Examples/Monocular/TUM_TimeStamps/dataset-outdoors2_512.txt",
+      "type": "file",
+      "size": 368980
+    },
+    {
+      "path": "Examples/Monocular/TUM_TimeStamps/dataset-outdoors3_512.txt",
+      "type": "file",
+      "size": 337620
+    },
+    {
+      "path": "Examples/Monocular/TUM_TimeStamps/dataset-outdoors4_512.txt",
+      "type": "file",
+      "size": 279980
+    },
+    {
+      "path": "Examples/Monocular/TUM_TimeStamps/dataset-outdoors5_512.txt",
+      "type": "file",
+      "size": 354940
+    },
+    {
+      "path": "Examples/Monocular/TUM_TimeStamps/dataset-outdoors6_512.txt",
+      "type": "file",
+      "size": 588060
+    },
+    {
+      "path": "Examples/Monocular/TUM_TimeStamps/dataset-outdoors7_512.txt",
+      "type": "file",
+      "size": 448980
+    },
+    {
+      "path": "Examples/Monocular/TUM_TimeStamps/dataset-outdoors8_512.txt",
+      "type": "file",
+      "size": 324260
+    },
+    {
+      "path": "Examples/Monocular/TUM_TimeStamps/dataset-room1_512.txt",
+      "type": "file",
+      "size": 56420
+    },
+    {
+      "path": "Examples/Monocular/TUM_TimeStamps/dataset-room2_512.txt",
+      "type": "file",
+      "size": 57640
+    },
+    {
+      "path": "Examples/Monocular/TUM_TimeStamps/dataset-room3_512.txt",
+      "type": "file",
+      "size": 56420
+    },
+    {
+      "path": "Examples/Monocular/TUM_TimeStamps/dataset-room4_512.txt",
+      "type": "file",
+      "size": 44560
+    },
+    {
+      "path": "Examples/Monocular/TUM_TimeStamps/dataset-room5_512.txt",
+      "type": "file",
+      "size": 56940
+    },
+    {
+      "path": "Examples/Monocular/TUM_TimeStamps/dataset-room6_512.txt",
+      "type": "file",
+      "size": 52720
+    },
+    {
+      "path": "Examples/Monocular/TUM_TimeStamps/dataset-slides1_512.txt",
+      "type": "file",
+      "size": 111640
+    },
+    {
+      "path": "Examples/Monocular/TUM_TimeStamps/dataset-slides2_512.txt",
+      "type": "file",
+      "size": 98160
+    },
+    {
+      "path": "Examples/Monocular/TUM_TimeStamps/dataset-slides3_512.txt",
+      "type": "file",
+      "size": 144660
+    },
+    {
+      "path": "Examples/RGB-D/associations/fr1_desk.txt",
+      "type": "file",
+      "size": 51570
+    },
+    {
+      "path": "Examples/RGB-D/associations/fr1_desk2.txt",
+      "type": "file",
+      "size": 55800
+    },
+    {
+      "path": "Examples/RGB-D/associations/fr1_room.txt",
+      "type": "file",
+      "size": 121680
+    },
+    {
+      "path": "Examples/RGB-D/associations/fr1_xyz.txt",
+      "type": "file",
+      "size": 71280
+    },
+    {
+      "path": "Examples/RGB-D/associations/fr2_desk.txt",
+      "type": "file",
+      "size": 260370
+    },
+    {
+      "path": "Examples/RGB-D/associations/fr2_xyz.txt",
+      "type": "file",
+      "size": 325350
+    },
+    {
+      "path": "Examples/RGB-D/associations/fr3_nstr_tex_near.txt",
+      "type": "file",
+      "size": 147510
+    },
+    {
+      "path": "Examples/RGB-D/associations/fr3_office.txt",
+      "type": "file",
+      "size": 223920
+    },
+    {
+      "path": "Examples/RGB-D/associations/fr3_office_val.txt",
+      "type": "file",
+      "size": 232560
+    },
+    {
+      "path": "Examples/RGB-D/associations/fr3_str_tex_far.txt",
+      "type": "file",
+      "size": 81630
+    },
+    {
+      "path": "Examples/RGB-D/associations/fr3_str_tex_near.txt",
+      "type": "file",
+      "size": 95130
+    },
+    {
+      "path": "Examples/Stereo-Inertial/EuRoC_IMU/MH01.txt",
+      "type": "file",
+      "size": 5210832
+    },
+    {
+      "path": "Examples/Stereo-Inertial/EuRoC_IMU/MH02.txt",
+      "type": "file",
+      "size": 4302332
+    },
+    {
+      "path": "Examples/Stereo-Inertial/EuRoC_IMU/MH03.txt",
+      "type": "file",
+      "size": 3815432
+    },
+    {
+      "path": "Examples/Stereo-Inertial/EuRoC_IMU/MH04.txt",
+      "type": "file",
+      "size": 2871307
+    },
+    {
+      "path": "Examples/Stereo-Inertial/EuRoC_IMU/MH05.txt",
+      "type": "file",
+      "size": 3215270
+    },
+    {
+      "path": "Examples/Stereo-Inertial/EuRoC_IMU/V101.txt",
+      "type": "file",
+      "size": 4113500
+    },
+    {
+      "path": "Examples/Stereo-Inertial/EuRoC_IMU/V102.txt",
+      "type": "file",
+      "size": 2405855
+    },
+    {
+      "path": "Examples/Stereo-Inertial/EuRoC_IMU/V103.txt",
+      "type": "file",
+      "size": 3024020
+    },
+    {
+      "path": "Examples/Stereo-Inertial/EuRoC_IMU/V201.txt",
+      "type": "file",
+      "size": 3217729
+    },
+    {
+      "path": "Examples/Stereo-Inertial/EuRoC_IMU/V202.txt",
+      "type": "file",
+      "size": 3305153
+    },
+    {
+      "path": "Examples/Stereo-Inertial/EuRoC_IMU/V203.txt",
+      "type": "file",
+      "size": 3283929
+    },
+    {
+      "path": "Examples/Stereo-Inertial/EuRoC_TimeStamps/MH01.txt",
+      "type": "file",
+      "size": 73640
+    },
+    {
+      "path": "Examples/Stereo-Inertial/EuRoC_TimeStamps/MH02.txt",
+      "type": "file",
+      "size": 60800
+    },
+    {
+      "path": "Examples/Stereo-Inertial/EuRoC_TimeStamps/MH03.txt",
+      "type": "file",
+      "size": 54000
+    },
+    {
+      "path": "Examples/Stereo-Inertial/EuRoC_TimeStamps/MH04.txt",
+      "type": "file",
+      "size": 40640
+    },
+    {
+      "path": "Examples/Stereo-Inertial/EuRoC_TimeStamps/MH05.txt",
+      "type": "file",
+      "size": 45460
+    },
+    {
+      "path": "Examples/Stereo-Inertial/EuRoC_TimeStamps/V101.txt",
+      "type": "file",
+      "size": 58240
+    },
+    {
+      "path": "Examples/Stereo-Inertial/EuRoC_TimeStamps/V102.txt",
+      "type": "file",
+      "size": 34200
+    },
+    {
+      "path": "Examples/Stereo-Inertial/EuRoC_TimeStamps/V103.txt",
+      "type": "file",
+      "size": 42980
+    },
+    {
+      "path": "Examples/Stereo-Inertial/EuRoC_TimeStamps/V201.txt",
+      "type": "file",
+      "size": 45600
+    },
+    {
+      "path": "Examples/Stereo-Inertial/EuRoC_TimeStamps/V202.txt",
+      "type": "file",
+      "size": 46960
+    },
+    {
+      "path": "Examples/Stereo-Inertial/EuRoC_TimeStamps/V203.txt",
+      "type": "file",
+      "size": 38420
+    },
+    {
+      "path": "Examples/Stereo-Inertial/EuRoC_TimeStamps/V203_2.txt",
+      "type": "file",
+      "size": 36400
+    },
+    {
+      "path": "Examples/Stereo-Inertial/TUM_IMU/dataset-corridor1_512.txt",
+      "type": "file",
+      "size": 6034922
+    },
+    {
+      "path": "Examples/Stereo-Inertial/TUM_IMU/dataset-corridor2_1024.txt",
+      "type": "file",
+      "size": 6807522
+    },
+    {
+      "path": "Examples/Stereo-Inertial/TUM_IMU/dataset-corridor2_512.txt",
+      "type": "file",
+      "size": 6807522
+    },
+    {
+      "path": "Examples/Stereo-Inertial/TUM_IMU/dataset-corridor3_512.txt",
+      "type": "file",
+      "size": 5840957
+    },
+    {
+      "path": "Examples/Stereo-Inertial/TUM_IMU/dataset-corridor4_512.txt",
+      "type": "file",
+      "size": 1933733
+    },
+    {
+      "path": "Examples/Stereo-Inertial/TUM_IMU/dataset-corridor5_512.txt",
+      "type": "file",
+      "size": 5957023
+    },
+    {
+      "path": "Examples/Stereo-Inertial/TUM_IMU/dataset-magistrale1_512.txt",
+      "type": "file",
+      "size": 15626971
+    },
+    {
+      "path": "Examples/Stereo-Inertial/TUM_IMU/dataset-magistrale2_512.txt",
+      "type": "file",
+      "size": 10941633
+    },
+    {
+      "path": "Examples/Stereo-Inertial/TUM_IMU/dataset-magistrale3_512.txt",
+      "type": "file",
+      "size": 9809793
+    },
+    {
+      "path": "Examples/Stereo-Inertial/TUM_IMU/dataset-magistrale4_512.txt",
+      "type": "file",
+      "size": 12609311
+    },
+    {
+      "path": "Examples/Stereo-Inertial/TUM_IMU/dataset-magistrale5_512.txt",
+      "type": "file",
+      "size": 8999871
+    },
+    {
+      "path": "Examples/Stereo-Inertial/TUM_IMU/dataset-magistrale6_512.txt",
+      "type": "file",
+      "size": 11582541
+    },
+    {
+      "path": "Examples/Stereo-Inertial/TUM_IMU/dataset-outdoors1_512.txt",
+      "type": "file",
+      "size": 25938882
+    },
+    {
+      "path": "Examples/Stereo-Inertial/TUM_IMU/dataset-outdoors2_512.txt",
+      "type": "file",
+      "size": 18679273
+    },
+    {
+      "path": "Examples/Stereo-Inertial/TUM_IMU/dataset-outdoors3_512.txt",
+      "type": "file",
+      "size": 17083048
+    },
+    {
+      "path": "Examples/Stereo-Inertial/TUM_IMU/dataset-outdoors4_512.txt",
+      "type": "file",
+      "size": 14166494
+    },
+    {
+      "path": "Examples/Stereo-Inertial/TUM_IMU/dataset-outdoors5_512.txt",
+      "type": "file",
+      "size": 17959626
+    },
+    {
+      "path": "Examples/Stereo-Inertial/TUM_IMU/dataset-outdoors6_512.txt",
+      "type": "file",
+      "size": 29749189
+    },
+    {
+      "path": "Examples/Stereo-Inertial/TUM_IMU/dataset-outdoors7_512.txt",
+      "type": "file",
+      "size": 22543465
+    },
+    {
+      "path": "Examples/Stereo-Inertial/TUM_IMU/dataset-outdoors8_512.txt",
+      "type": "file",
+      "size": 16388213
+    },
+    {
+      "path": "Examples/Stereo-Inertial/TUM_IMU/dataset-room1_512.txt",
+      "type": "file",
+      "size": 2831804
+    },
+    {
+      "path": "Examples/Stereo-Inertial/TUM_IMU/dataset-room2_512.txt",
+      "type": "file",
+      "size": 2874197
+    },
+    {
+      "path": "Examples/Stereo-Inertial/TUM_IMU/dataset-room3_512.txt",
+      "type": "file",
+      "size": 2832266
+    },
+    {
+      "path": "Examples/Stereo-Inertial/TUM_IMU/dataset-room4_512.txt",
+      "type": "file",
+      "size": 2232296
+    },
+    {
+      "path": "Examples/Stereo-Inertial/TUM_IMU/dataset-room5_512.txt",
+      "type": "file",
+      "size": 2859836
+    },
+    {
+      "path": "Examples/Stereo-Inertial/TUM_IMU/dataset-room6_512.txt",
+      "type": "file",
+      "size": 2637332
+    },
+    {
+      "path": "Examples/Stereo-Inertial/TUM_IMU/dataset-slides1_512.txt",
+      "type": "file",
+      "size": 5637446
+    },
+    {
+      "path": "Examples/Stereo-Inertial/TUM_IMU/dataset-slides2_512.txt",
+      "type": "file",
+      "size": 4925437
+    },
+    {
+      "path": "Examples/Stereo-Inertial/TUM_IMU/dataset-slides3_512.txt",
+      "type": "file",
+      "size": 7300651
+    },
+    {
+      "path": "Examples/Stereo-Inertial/TUM_TimeStamps/dataset-corridor1_512.txt",
+      "type": "file",
+      "size": 119800
+    },
+    {
+      "path": "Examples/Stereo-Inertial/TUM_TimeStamps/dataset-corridor2_1024.txt",
+      "type": "file",
+      "size": 135471
+    },
+    {
+      "path": "Examples/Stereo-Inertial/TUM_TimeStamps/dataset-corridor2_512.txt",
+      "type": "file",
+      "size": 135440
+    },
+    {
+      "path": "Examples/Stereo-Inertial/TUM_TimeStamps/dataset-corridor3_512.txt",
+      "type": "file",
+      "size": 116040
+    },
+    {
+      "path": "Examples/Stereo-Inertial/TUM_TimeStamps/dataset-corridor4_512.txt",
+      "type": "file",
+      "size": 38540
+    },
+    {
+      "path": "Examples/Stereo-Inertial/TUM_TimeStamps/dataset-corridor5_512.txt",
+      "type": "file",
+      "size": 118280
+    },
+    {
+      "path": "Examples/Stereo-Inertial/TUM_TimeStamps/dataset-magistrale1_512.txt",
+      "type": "file",
+      "size": 308940
+    },
+    {
+      "path": "Examples/Stereo-Inertial/TUM_TimeStamps/dataset-magistrale2_512.txt",
+      "type": "file",
+      "size": 216200
+    },
+    {
+      "path": "Examples/Stereo-Inertial/TUM_TimeStamps/dataset-magistrale3_512.txt",
+      "type": "file",
+      "size": 194060
+    },
+    {
+      "path": "Examples/Stereo-Inertial/TUM_TimeStamps/dataset-magistrale4_512.txt",
+      "type": "file",
+      "size": 249600
+    },
+    {
+      "path": "Examples/Stereo-Inertial/TUM_TimeStamps/dataset-magistrale5_512.txt",
+      "type": "file",
+      "size": 178440
+    },
+    {
+      "path": "Examples/Stereo-Inertial/TUM_TimeStamps/dataset-magistrale6_512.txt",
+      "type": "file",
+      "size": 229940
+    },
+    {
+      "path": "Examples/Stereo-Inertial/TUM_TimeStamps/dataset-outdoors1_512.txt",
+      "type": "file",
+      "size": 512620
+    },
+    {
+      "path": "Examples/Stereo-Inertial/TUM_TimeStamps/dataset-outdoors2_512.txt",
+      "type": "file",
+      "size": 368980
+    },
+    {
+      "path": "Examples/Stereo-Inertial/TUM_TimeStamps/dataset-outdoors3_512.txt",
+      "type": "file",
+      "size": 337620
+    },
+    {
+      "path": "Examples/Stereo-Inertial/TUM_TimeStamps/dataset-outdoors4_512.txt",
+      "type": "file",
+      "size": 279980
+    },
+    {
+      "path": "Examples/Stereo-Inertial/TUM_TimeStamps/dataset-outdoors5_512.txt",
+      "type": "file",
+      "size": 354940
+    },
+    {
+      "path": "Examples/Stereo-Inertial/TUM_TimeStamps/dataset-outdoors6_512.txt",
+      "type": "file",
+      "size": 588060
+    },
+    {
+      "path": "Examples/Stereo-Inertial/TUM_TimeStamps/dataset-outdoors7_512.txt",
+      "type": "file",
+      "size": 448980
+    },
+    {
+      "path": "Examples/Stereo-Inertial/TUM_TimeStamps/dataset-outdoors8_512.txt",
+      "type": "file",
+      "size": 324260
+    },
+    {
+      "path": "Examples/Stereo-Inertial/TUM_TimeStamps/dataset-room1_512.txt",
+      "type": "file",
+      "size": 56420
+    },
+    {
+      "path": "Examples/Stereo-Inertial/TUM_TimeStamps/dataset-room2_512.txt",
+      "type": "file",
+      "size": 57640
+    },
+    {
+      "path": "Examples/Stereo-Inertial/TUM_TimeStamps/dataset-room3_512.txt",
+      "type": "file",
+      "size": 56420
+    },
+    {
+      "path": "Examples/Stereo-Inertial/TUM_TimeStamps/dataset-room4_512.txt",
+      "type": "file",
+      "size": 44560
+    },
+    {
+      "path": "Examples/Stereo-Inertial/TUM_TimeStamps/dataset-room5_512.txt",
+      "type": "file",
+      "size": 56940
+    },
+    {
+      "path": "Examples/Stereo-Inertial/TUM_TimeStamps/dataset-room6_512.txt",
+      "type": "file",
+      "size": 52720
+    },
+    {
+      "path": "Examples/Stereo-Inertial/TUM_TimeStamps/dataset-slides1_512.txt",
+      "type": "file",
+      "size": 111640
+    },
+    {
+      "path": "Examples/Stereo-Inertial/TUM_TimeStamps/dataset-slides2_512.txt",
+      "type": "file",
+      "size": 98160
+    },
+    {
+      "path": "Examples/Stereo-Inertial/TUM_TimeStamps/dataset-slides3_512.txt",
+      "type": "file",
+      "size": 144660
+    },
+    {
+      "path": "Examples/Stereo/EuRoC_TimeStamps/MH01.txt",
+      "type": "file",
+      "size": 73640
+    },
+    {
+      "path": "Examples/Stereo/EuRoC_TimeStamps/MH02.txt",
+      "type": "file",
+      "size": 60800
+    },
+    {
+      "path": "Examples/Stereo/EuRoC_TimeStamps/MH03.txt",
+      "type": "file",
+      "size": 54000
+    },
+    {
+      "path": "Examples/Stereo/EuRoC_TimeStamps/MH04.txt",
+      "type": "file",
+      "size": 40640
+    },
+    {
+      "path": "Examples/Stereo/EuRoC_TimeStamps/MH05.txt",
+      "type": "file",
+      "size": 45460
+    },
+    {
+      "path": "Examples/Stereo/EuRoC_TimeStamps/V101.txt",
+      "type": "file",
+      "size": 58240
+    },
+    {
+      "path": "Examples/Stereo/EuRoC_TimeStamps/V102.txt",
+      "type": "file",
+      "size": 34200
+    },
+    {
+      "path": "Examples/Stereo/EuRoC_TimeStamps/V103.txt",
+      "type": "file",
+      "size": 42980
+    },
+    {
+      "path": "Examples/Stereo/EuRoC_TimeStamps/V201.txt",
+      "type": "file",
+      "size": 45600
+    },
+    {
+      "path": "Examples/Stereo/EuRoC_TimeStamps/V202.txt",
+      "type": "file",
+      "size": 46960
+    },
+    {
+      "path": "Examples/Stereo/EuRoC_TimeStamps/V203.txt",
+      "type": "file",
+      "size": 38420
+    },
+    {
+      "path": "Examples/Stereo/TUM_TimeStamps/dataset-corridor1_512.txt",
+      "type": "file",
+      "size": 119800
+    },
+    {
+      "path": "Examples/Stereo/TUM_TimeStamps/dataset-corridor2_1024.txt",
+      "type": "file",
+      "size": 135471
+    },
+    {
+      "path": "Examples/Stereo/TUM_TimeStamps/dataset-corridor2_512.txt",
+      "type": "file",
+      "size": 135440
+    },
+    {
+      "path": "Examples/Stereo/TUM_TimeStamps/dataset-corridor3_512.txt",
+      "type": "file",
+      "size": 116040
+    },
+    {
+      "path": "Examples/Stereo/TUM_TimeStamps/dataset-corridor4_512.txt",
+      "type": "file",
+      "size": 38540
+    },
+    {
+      "path": "Examples/Stereo/TUM_TimeStamps/dataset-corridor5_512.txt",
+      "type": "file",
+      "size": 118280
+    },
+    {
+      "path": "Examples/Stereo/TUM_TimeStamps/dataset-magistrale1_512.txt",
+      "type": "file",
+      "size": 308940
+    },
+    {
+      "path": "Examples/Stereo/TUM_TimeStamps/dataset-magistrale2_512.txt",
+      "type": "file",
+      "size": 216200
+    },
+    {
+      "path": "Examples/Stereo/TUM_TimeStamps/dataset-magistrale3_512.txt",
+      "type": "file",
+      "size": 194060
+    },
+    {
+      "path": "Examples/Stereo/TUM_TimeStamps/dataset-magistrale4_512.txt",
+      "type": "file",
+      "size": 249600
+    },
+    {
+      "path": "Examples/Stereo/TUM_TimeStamps/dataset-magistrale5_512.txt",
+      "type": "file",
+      "size": 178440
+    },
+    {
+      "path": "Examples/Stereo/TUM_TimeStamps/dataset-magistrale6_512.txt",
+      "type": "file",
+      "size": 229940
+    },
+    {
+      "path": "Examples/Stereo/TUM_TimeStamps/dataset-outdoors1_512.txt",
+      "type": "file",
+      "size": 512620
+    },
+    {
+      "path": "Examples/Stereo/TUM_TimeStamps/dataset-outdoors2_512.txt",
+      "type": "file",
+      "size": 368980
+    },
+    {
+      "path": "Examples/Stereo/TUM_TimeStamps/dataset-outdoors3_512.txt",
+      "type": "file",
+      "size": 337620
+    },
+    {
+      "path": "Examples/Stereo/TUM_TimeStamps/dataset-outdoors4_512.txt",
+      "type": "file",
+      "size": 279980
+    },
+    {
+      "path": "Examples/Stereo/TUM_TimeStamps/dataset-outdoors5_512.txt",
+      "type": "file",
+      "size": 354940
+    },
+    {
+      "path": "Examples/Stereo/TUM_TimeStamps/dataset-outdoors6_512.txt",
+      "type": "file",
+      "size": 588060
+    },
+    {
+      "path": "Examples/Stereo/TUM_TimeStamps/dataset-outdoors7_512.txt",
+      "type": "file",
+      "size": 448980
+    },
+    {
+      "path": "Examples/Stereo/TUM_TimeStamps/dataset-outdoors8_512.txt",
+      "type": "file",
+      "size": 324260
+    },
+    {
+      "path": "Examples/Stereo/TUM_TimeStamps/dataset-room1_512.txt",
+      "type": "file",
+      "size": 56420
+    },
+    {
+      "path": "Examples/Stereo/TUM_TimeStamps/dataset-room2_512.txt",
+      "type": "file",
+      "size": 57640
+    },
+    {
+      "path": "Examples/Stereo/TUM_TimeStamps/dataset-room3_512.txt",
+      "type": "file",
+      "size": 56420
+    },
+    {
+      "path": "Examples/Stereo/TUM_TimeStamps/dataset-room4_512.txt",
+      "type": "file",
+      "size": 44560
+    },
+    {
+      "path": "Examples/Stereo/TUM_TimeStamps/dataset-room5_512.txt",
+      "type": "file",
+      "size": 56940
+    },
+    {
+      "path": "Examples/Stereo/TUM_TimeStamps/dataset-room6_512.txt",
+      "type": "file",
+      "size": 52720
+    },
+    {
+      "path": "Examples/Stereo/TUM_TimeStamps/dataset-slides1_512.txt",
+      "type": "file",
+      "size": 111640
+    },
+    {
+      "path": "Examples/Stereo/TUM_TimeStamps/dataset-slides2_512.txt",
+      "type": "file",
+      "size": 98160
+    },
+    {
+      "path": "Examples/Stereo/TUM_TimeStamps/dataset-slides3_512.txt",
+      "type": "file",
+      "size": 144660
+    },
+    {
+      "path": "Examples_old/Monocular-Inertial/EuRoC_IMU/MH01.txt",
+      "type": "file",
+      "size": 5210832
+    },
+    {
+      "path": "Examples_old/Monocular-Inertial/EuRoC_IMU/MH02.txt",
+      "type": "file",
+      "size": 4302332
+    },
+    {
+      "path": "Examples_old/Monocular-Inertial/EuRoC_IMU/MH03.txt",
+      "type": "file",
+      "size": 3815432
+    },
+    {
+      "path": "Examples_old/Monocular-Inertial/EuRoC_IMU/MH04.txt",
+      "type": "file",
+      "size": 2871307
+    },
+    {
+      "path": "Examples_old/Monocular-Inertial/EuRoC_IMU/MH05.txt",
+      "type": "file",
+      "size": 3215270
+    },
+    {
+      "path": "Examples_old/Monocular-Inertial/EuRoC_IMU/V101.txt",
+      "type": "file",
+      "size": 4113500
+    },
+    {
+      "path": "Examples_old/Monocular-Inertial/EuRoC_IMU/V102.txt",
+      "type": "file",
+      "size": 2405855
+    },
+    {
+      "path": "Examples_old/Monocular-Inertial/EuRoC_IMU/V103.txt",
+      "type": "file",
+      "size": 3024020
+    },
+    {
+      "path": "Examples_old/Monocular-Inertial/EuRoC_IMU/V201.txt",
+      "type": "file",
+      "size": 3217729
+    },
+    {
+      "path": "Examples_old/Monocular-Inertial/EuRoC_IMU/V202.txt",
+      "type": "file",
+      "size": 3305153
+    },
+    {
+      "path": "Examples_old/Monocular-Inertial/EuRoC_IMU/V203.txt",
+      "type": "file",
+      "size": 3283929
+    },
+    {
+      "path": "Examples_old/Monocular-Inertial/EuRoC_TimeStamps/MH01.txt",
+      "type": "file",
+      "size": 73640
+    },
+    {
+      "path": "Examples_old/Monocular-Inertial/EuRoC_TimeStamps/MH02.txt",
+      "type": "file",
+      "size": 60800
+    },
+    {
+      "path": "Examples_old/Monocular-Inertial/EuRoC_TimeStamps/MH03.txt",
+      "type": "file",
+      "size": 54000
+    },
+    {
+      "path": "Examples_old/Monocular-Inertial/EuRoC_TimeStamps/MH04.txt",
+      "type": "file",
+      "size": 40660
+    },
+    {
+      "path": "Examples_old/Monocular-Inertial/EuRoC_TimeStamps/MH05.txt",
+      "type": "file",
+      "size": 45460
+    },
+    {
+      "path": "Examples_old/Monocular-Inertial/EuRoC_TimeStamps/V101.txt",
+      "type": "file",
+      "size": 58240
+    },
+    {
+      "path": "Examples_old/Monocular-Inertial/EuRoC_TimeStamps/V102.txt",
+      "type": "file",
+      "size": 34200
+    },
+    {
+      "path": "Examples_old/Monocular-Inertial/EuRoC_TimeStamps/V103.txt",
+      "type": "file",
+      "size": 42980
+    },
+    {
+      "path": "Examples_old/Monocular-Inertial/EuRoC_TimeStamps/V201.txt",
+      "type": "file",
+      "size": 45600
+    },
+    {
+      "path": "Examples_old/Monocular-Inertial/EuRoC_TimeStamps/V202.txt",
+      "type": "file",
+      "size": 46960
+    },
+    {
+      "path": "Examples_old/Monocular-Inertial/EuRoC_TimeStamps/V203.txt",
+      "type": "file",
+      "size": 38440
+    },
+    {
+      "path": "Examples_old/Monocular-Inertial/MultiSession/EuRoC_MH01.yaml",
+      "type": "file",
+      "size": 3067
+    },
+    {
+      "path": "Examples_old/Monocular-Inertial/MultiSession/EuRoC_MH02.yaml",
+      "type": "file",
+      "size": 3095
+    },
+    {
+      "path": "Examples_old/Monocular-Inertial/MultiSession/EuRoC_MH03.yaml",
+      "type": "file",
+      "size": 3103
+    },
+    {
+      "path": "Examples_old/Monocular-Inertial/MultiSession/EuRoC_MH04.yaml",
+      "type": "file",
+      "size": 3103
+    },
+    {
+      "path": "Examples_old/Monocular-Inertial/MultiSession/EuRoC_MH05.yaml",
+      "type": "file",
+      "size": 3103
+    },
+    {
+      "path": "Examples_old/Monocular-Inertial/MultiSession/EuRoC_V101.yaml",
+      "type": "file",
+      "size": 3067
+    },
+    {
+      "path": "Examples_old/Monocular-Inertial/MultiSession/EuRoC_V102.yaml",
+      "type": "file",
+      "size": 3095
+    },
+    {
+      "path": "Examples_old/Monocular-Inertial/MultiSession/EuRoC_V103.yaml",
+      "type": "file",
+      "size": 3103
+    },
+    {
+      "path": "Examples_old/Monocular-Inertial/MultiSession/EuRoC_V201.yaml",
+      "type": "file",
+      "size": 3067
+    },
+    {
+      "path": "Examples_old/Monocular-Inertial/MultiSession/EuRoC_V202.yaml",
+      "type": "file",
+      "size": 3095
+    },
+    {
+      "path": "Examples_old/Monocular-Inertial/MultiSession/EuRoC_V203.yaml",
+      "type": "file",
+      "size": 3103
+    },
+    {
+      "path": "Examples_old/Monocular-Inertial/TUM_IMU/dataset-corridor1_512.txt",
+      "type": "file",
+      "size": 6034922
+    },
+    {
+      "path": "Examples_old/Monocular-Inertial/TUM_IMU/dataset-corridor2_1024.txt",
+      "type": "file",
+      "size": 6807522
+    },
+    {
+      "path": "Examples_old/Monocular-Inertial/TUM_IMU/dataset-corridor2_512.txt",
+      "type": "file",
+      "size": 6807522
+    },
+    {
+      "path": "Examples_old/Monocular-Inertial/TUM_IMU/dataset-corridor3_512.txt",
+      "type": "file",
+      "size": 5840957
+    },
+    {
+      "path": "Examples_old/Monocular-Inertial/TUM_IMU/dataset-corridor4_512.txt",
+      "type": "file",
+      "size": 1933733
+    },
+    {
+      "path": "Examples_old/Monocular-Inertial/TUM_IMU/dataset-corridor5_512.txt",
+      "type": "file",
+      "size": 5957023
+    },
+    {
+      "path": "Examples_old/Monocular-Inertial/TUM_IMU/dataset-magistrale1_512.txt",
+      "type": "file",
+      "size": 15626971
+    },
+    {
+      "path": "Examples_old/Monocular-Inertial/TUM_IMU/dataset-magistrale2_512.txt",
+      "type": "file",
+      "size": 10941633
+    },
+    {
+      "path": "Examples_old/Monocular-Inertial/TUM_IMU/dataset-magistrale3_512.txt",
+      "type": "file",
+      "size": 9809793
+    },
+    {
+      "path": "Examples_old/Monocular-Inertial/TUM_IMU/dataset-magistrale4_512.txt",
+      "type": "file",
+      "size": 12609311
+    },
+    {
+      "path": "Examples_old/Monocular-Inertial/TUM_IMU/dataset-magistrale5_512.txt",
+      "type": "file",
+      "size": 8999871
+    },
+    {
+      "path": "Examples_old/Monocular-Inertial/TUM_IMU/dataset-magistrale6_512.txt",
+      "type": "file",
+      "size": 11582541
+    },
+    {
+      "path": "Examples_old/Monocular-Inertial/TUM_IMU/dataset-outdoors1_512.txt",
+      "type": "file",
+      "size": 25938882
+    },
+    {
+      "path": "Examples_old/Monocular-Inertial/TUM_IMU/dataset-outdoors2_512.txt",
+      "type": "file",
+      "size": 18679273
+    },
+    {
+      "path": "Examples_old/Monocular-Inertial/TUM_IMU/dataset-outdoors3_512.txt",
+      "type": "file",
+      "size": 17083048
+    },
+    {
+      "path": "Examples_old/Monocular-Inertial/TUM_IMU/dataset-outdoors4_512.txt",
+      "type": "file",
+      "size": 14166494
+    },
+    {
+      "path": "Examples_old/Monocular-Inertial/TUM_IMU/dataset-outdoors5_512.txt",
+      "type": "file",
+      "size": 17959626
+    },
+    {
+      "path": "Examples_old/Monocular-Inertial/TUM_IMU/dataset-outdoors6_512.txt",
+      "type": "file",
+      "size": 29749189
+    },
+    {
+      "path": "Examples_old/Monocular-Inertial/TUM_IMU/dataset-outdoors7_512.txt",
+      "type": "file",
+      "size": 22543465
+    },
+    {
+      "path": "Examples_old/Monocular-Inertial/TUM_IMU/dataset-outdoors8_512.txt",
+      "type": "file",
+      "size": 16388213
+    },
+    {
+      "path": "Examples_old/Monocular-Inertial/TUM_IMU/dataset-room1_512.txt",
+      "type": "file",
+      "size": 2831804
+    },
+    {
+      "path": "Examples_old/Monocular-Inertial/TUM_IMU/dataset-room2_512.txt",
+      "type": "file",
+      "size": 2874197
+    },
+    {
+      "path": "Examples_old/Monocular-Inertial/TUM_IMU/dataset-room3_512.txt",
+      "type": "file",
+      "size": 2832266
+    },
+    {
+      "path": "Examples_old/Monocular-Inertial/TUM_IMU/dataset-room4_512.txt",
+      "type": "file",
+      "size": 2232296
+    },
+    {
+      "path": "Examples_old/Monocular-Inertial/TUM_IMU/dataset-room5_512.txt",
+      "type": "file",
+      "size": 2859836
+    },
+    {
+      "path": "Examples_old/Monocular-Inertial/TUM_IMU/dataset-room6_512.txt",
+      "type": "file",
+      "size": 2637332
+    },
+    {
+      "path": "Examples_old/Monocular-Inertial/TUM_IMU/dataset-slides1_512.txt",
+      "type": "file",
+      "size": 5637446
+    },
+    {
+      "path": "Examples_old/Monocular-Inertial/TUM_IMU/dataset-slides2_512.txt",
+      "type": "file",
+      "size": 4925437
+    },
+    {
+      "path": "Examples_old/Monocular-Inertial/TUM_IMU/dataset-slides3_512.txt",
+      "type": "file",
+      "size": 7300651
+    },
+    {
+      "path": "Examples_old/Monocular-Inertial/TUM_TimeStamps/dataset-corridor1_512.txt",
+      "type": "file",
+      "size": 119800
+    },
+    {
+      "path": "Examples_old/Monocular-Inertial/TUM_TimeStamps/dataset-corridor2_1024.txt",
+      "type": "file",
+      "size": 135471
+    },
+    {
+      "path": "Examples_old/Monocular-Inertial/TUM_TimeStamps/dataset-corridor2_512.txt",
+      "type": "file",
+      "size": 135440
+    },
+    {
+      "path": "Examples_old/Monocular-Inertial/TUM_TimeStamps/dataset-corridor3_512.txt",
+      "type": "file",
+      "size": 116040
+    },
+    {
+      "path": "Examples_old/Monocular-Inertial/TUM_TimeStamps/dataset-corridor4_512.txt",
+      "type": "file",
+      "size": 38540
+    },
+    {
+      "path": "Examples_old/Monocular-Inertial/TUM_TimeStamps/dataset-corridor5_512.txt",
+      "type": "file",
+      "size": 118280
+    },
+    {
+      "path": "Examples_old/Monocular-Inertial/TUM_TimeStamps/dataset-magistrale1_512.txt",
+      "type": "file",
+      "size": 308940
+    },
+    {
+      "path": "Examples_old/Monocular-Inertial/TUM_TimeStamps/dataset-magistrale2_512.txt",
+      "type": "file",
+      "size": 216200
+    },
+    {
+      "path": "Examples_old/Monocular-Inertial/TUM_TimeStamps/dataset-magistrale3_512.txt",
+      "type": "file",
+      "size": 194060
+    },
+    {
+      "path": "Examples_old/Monocular-Inertial/TUM_TimeStamps/dataset-magistrale4_512.txt",
+      "type": "file",
+      "size": 249600
+    },
+    {
+      "path": "Examples_old/Monocular-Inertial/TUM_TimeStamps/dataset-magistrale5_512.txt",
+      "type": "file",
+      "size": 178440
+    },
+    {
+      "path": "Examples_old/Monocular-Inertial/TUM_TimeStamps/dataset-magistrale6_512.txt",
+      "type": "file",
+      "size": 229940
+    },
+    {
+      "path": "Examples_old/Monocular-Inertial/TUM_TimeStamps/dataset-outdoors1_512.txt",
+      "type": "file",
+      "size": 512620
+    },
+    {
+      "path": "Examples_old/Monocular-Inertial/TUM_TimeStamps/dataset-outdoors2_512.txt",
+      "type": "file",
+      "size": 368980
+    },
+    {
+      "path": "Examples_old/Monocular-Inertial/TUM_TimeStamps/dataset-outdoors3_512.txt",
+      "type": "file",
+      "size": 337620
+    },
+    {
+      "path": "Examples_old/Monocular-Inertial/TUM_TimeStamps/dataset-outdoors4_512.txt",
+      "type": "file",
+      "size": 279980
+    },
+    {
+      "path": "Examples_old/Monocular-Inertial/TUM_TimeStamps/dataset-outdoors5_512.txt",
+      "type": "file",
+      "size": 354940
+    },
+    {
+      "path": "Examples_old/Monocular-Inertial/TUM_TimeStamps/dataset-outdoors6_512.txt",
+      "type": "file",
+      "size": 588060
+    },
+    {
+      "path": "Examples_old/Monocular-Inertial/TUM_TimeStamps/dataset-outdoors7_512.txt",
+      "type": "file",
+      "size": 448980
+    },
+    {
+      "path": "Examples_old/Monocular-Inertial/TUM_TimeStamps/dataset-outdoors8_512.txt",
+      "type": "file",
+      "size": 324260
+    },
+    {
+      "path": "Examples_old/Monocular-Inertial/TUM_TimeStamps/dataset-room1_512.txt",
+      "type": "file",
+      "size": 56420
+    },
+    {
+      "path": "Examples_old/Monocular-Inertial/TUM_TimeStamps/dataset-room2_512.txt",
+      "type": "file",
+      "size": 57640
+    },
+    {
+      "path": "Examples_old/Monocular-Inertial/TUM_TimeStamps/dataset-room3_512.txt",
+      "type": "file",
+      "size": 56420
+    },
+    {
+      "path": "Examples_old/Monocular-Inertial/TUM_TimeStamps/dataset-room4_512.txt",
+      "type": "file",
+      "size": 44560
+    },
+    {
+      "path": "Examples_old/Monocular-Inertial/TUM_TimeStamps/dataset-room5_512.txt",
+      "type": "file",
+      "size": 56940
+    },
+    {
+      "path": "Examples_old/Monocular-Inertial/TUM_TimeStamps/dataset-room6_512.txt",
+      "type": "file",
+      "size": 52720
+    },
+    {
+      "path": "Examples_old/Monocular-Inertial/TUM_TimeStamps/dataset-slides1_512.txt",
+      "type": "file",
+      "size": 111640
+    },
+    {
+      "path": "Examples_old/Monocular-Inertial/TUM_TimeStamps/dataset-slides2_512.txt",
+      "type": "file",
+      "size": 98160
+    },
+    {
+      "path": "Examples_old/Monocular-Inertial/TUM_TimeStamps/dataset-slides3_512.txt",
+      "type": "file",
+      "size": 144660
+    },
+    {
+      "path": "Examples_old/Monocular/EuRoC_TimeStamps/MH01.txt",
+      "type": "file",
+      "size": 73640
+    },
+    {
+      "path": "Examples_old/Monocular/EuRoC_TimeStamps/MH02.txt",
+      "type": "file",
+      "size": 60800
+    },
+    {
+      "path": "Examples_old/Monocular/EuRoC_TimeStamps/MH03.txt",
+      "type": "file",
+      "size": 54000
+    },
+    {
+      "path": "Examples_old/Monocular/EuRoC_TimeStamps/MH04.txt",
+      "type": "file",
+      "size": 40660
+    },
+    {
+      "path": "Examples_old/Monocular/EuRoC_TimeStamps/MH05.txt",
+      "type": "file",
+      "size": 45460
+    },
+    {
+      "path": "Examples_old/Monocular/EuRoC_TimeStamps/V101.txt",
+      "type": "file",
+      "size": 58240
+    },
+    {
+      "path": "Examples_old/Monocular/EuRoC_TimeStamps/V102.txt",
+      "type": "file",
+      "size": 34200
+    },
+    {
+      "path": "Examples_old/Monocular/EuRoC_TimeStamps/V103.txt",
+      "type": "file",
+      "size": 42980
+    },
+    {
+      "path": "Examples_old/Monocular/EuRoC_TimeStamps/V201.txt",
+      "type": "file",
+      "size": 45600
+    },
+    {
+      "path": "Examples_old/Monocular/EuRoC_TimeStamps/V202.txt",
+      "type": "file",
+      "size": 46960
+    },
+    {
+      "path": "Examples_old/Monocular/EuRoC_TimeStamps/V203.txt",
+      "type": "file",
+      "size": 38440
+    },
+    {
+      "path": "Examples_old/Monocular/MultiSession/EuRoC_MH01.yaml",
+      "type": "file",
+      "size": 2510
+    },
+    {
+      "path": "Examples_old/Monocular/MultiSession/EuRoC_MH02.yaml",
+      "type": "file",
+      "size": 2534
+    },
+    {
+      "path": "Examples_old/Monocular/MultiSession/EuRoC_MH03.yaml",
+      "type": "file",
+      "size": 2542
+    },
+    {
+      "path": "Examples_old/Monocular/MultiSession/EuRoC_MH04.yaml",
+      "type": "file",
+      "size": 2542
+    },
+    {
+      "path": "Examples_old/Monocular/MultiSession/EuRoC_MH05.yaml",
+      "type": "file",
+      "size": 2542
+    },
+    {
+      "path": "Examples_old/Monocular/MultiSession/EuRoC_V101.yaml",
+      "type": "file",
+      "size": 2510
+    },
+    {
+      "path": "Examples_old/Monocular/MultiSession/EuRoC_V102.yaml",
+      "type": "file",
+      "size": 2534
+    },
+    {
+      "path": "Examples_old/Monocular/MultiSession/EuRoC_V103.yaml",
+      "type": "file",
+      "size": 2542
+    },
+    {
+      "path": "Examples_old/Monocular/MultiSession/EuRoC_V201.yaml",
+      "type": "file",
+      "size": 2510
+    },
+    {
+      "path": "Examples_old/Monocular/MultiSession/EuRoC_V202.yaml",
+      "type": "file",
+      "size": 2534
+    },
+    {
+      "path": "Examples_old/Monocular/MultiSession/EuRoC_V203.yaml",
+      "type": "file",
+      "size": 2542
+    },
+    {
+      "path": "Examples_old/Monocular/TUM_TimeStamps/dataset-corridor1_512.txt",
+      "type": "file",
+      "size": 119800
+    },
+    {
+      "path": "Examples_old/Monocular/TUM_TimeStamps/dataset-corridor2_1024.txt",
+      "type": "file",
+      "size": 135471
+    },
+    {
+      "path": "Examples_old/Monocular/TUM_TimeStamps/dataset-corridor2_512.txt",
+      "type": "file",
+      "size": 135440
+    },
+    {
+      "path": "Examples_old/Monocular/TUM_TimeStamps/dataset-corridor3_512.txt",
+      "type": "file",
+      "size": 116040
+    },
+    {
+      "path": "Examples_old/Monocular/TUM_TimeStamps/dataset-corridor4_512.txt",
+      "type": "file",
+      "size": 38540
+    },
+    {
+      "path": "Examples_old/Monocular/TUM_TimeStamps/dataset-corridor5_512.txt",
+      "type": "file",
+      "size": 118280
+    },
+    {
+      "path": "Examples_old/Monocular/TUM_TimeStamps/dataset-magistrale1_512.txt",
+      "type": "file",
+      "size": 308940
+    },
+    {
+      "path": "Examples_old/Monocular/TUM_TimeStamps/dataset-magistrale2_512.txt",
+      "type": "file",
+      "size": 216200
+    },
+    {
+      "path": "Examples_old/Monocular/TUM_TimeStamps/dataset-magistrale3_512.txt",
+      "type": "file",
+      "size": 194060
+    },
+    {
+      "path": "Examples_old/Monocular/TUM_TimeStamps/dataset-magistrale4_512.txt",
+      "type": "file",
+      "size": 249600
+    },
+    {
+      "path": "Examples_old/Monocular/TUM_TimeStamps/dataset-magistrale5_512.txt",
+      "type": "file",
+      "size": 178440
+    },
+    {
+      "path": "Examples_old/Monocular/TUM_TimeStamps/dataset-magistrale6_512.txt",
+      "type": "file",
+      "size": 229940
+    },
+    {
+      "path": "Examples_old/Monocular/TUM_TimeStamps/dataset-outdoors1_512.txt",
+      "type": "file",
+      "size": 512620
+    },
+    {
+      "path": "Examples_old/Monocular/TUM_TimeStamps/dataset-outdoors2_512.txt",
+      "type": "file",
+      "size": 368980
+    },
+    {
+      "path": "Examples_old/Monocular/TUM_TimeStamps/dataset-outdoors3_512.txt",
+      "type": "file",
+      "size": 337620
+    },
+    {
+      "path": "Examples_old/Monocular/TUM_TimeStamps/dataset-outdoors4_512.txt",
+      "type": "file",
+      "size": 279980
+    },
+    {
+      "path": "Examples_old/Monocular/TUM_TimeStamps/dataset-outdoors5_512.txt",
+      "type": "file",
+      "size": 354940
+    },
+    {
+      "path": "Examples_old/Monocular/TUM_TimeStamps/dataset-outdoors6_512.txt",
+      "type": "file",
+      "size": 588060
+    },
+    {
+      "path": "Examples_old/Monocular/TUM_TimeStamps/dataset-outdoors7_512.txt",
+      "type": "file",
+      "size": 448980
+    },
+    {
+      "path": "Examples_old/Monocular/TUM_TimeStamps/dataset-outdoors8_512.txt",
+      "type": "file",
+      "size": 324260
+    },
+    {
+      "path": "Examples_old/Monocular/TUM_TimeStamps/dataset-room1_512.txt",
+      "type": "file",
+      "size": 56420
+    },
+    {
+      "path": "Examples_old/Monocular/TUM_TimeStamps/dataset-room2_512.txt",
+      "type": "file",
+      "size": 57640
+    },
+    {
+      "path": "Examples_old/Monocular/TUM_TimeStamps/dataset-room3_512.txt",
+      "type": "file",
+      "size": 56420
+    },
+    {
+      "path": "Examples_old/Monocular/TUM_TimeStamps/dataset-room4_512.txt",
+      "type": "file",
+      "size": 44560
+    },
+    {
+      "path": "Examples_old/Monocular/TUM_TimeStamps/dataset-room5_512.txt",
+      "type": "file",
+      "size": 56940
+    },
+    {
+      "path": "Examples_old/Monocular/TUM_TimeStamps/dataset-room6_512.txt",
+      "type": "file",
+      "size": 52720
+    },
+    {
+      "path": "Examples_old/Monocular/TUM_TimeStamps/dataset-slides1_512.txt",
+      "type": "file",
+      "size": 111640
+    },
+    {
+      "path": "Examples_old/Monocular/TUM_TimeStamps/dataset-slides2_512.txt",
+      "type": "file",
+      "size": 98160
+    },
+    {
+      "path": "Examples_old/Monocular/TUM_TimeStamps/dataset-slides3_512.txt",
+      "type": "file",
+      "size": 144660
+    },
+    {
+      "path": "Examples_old/RGB-D/associations/fr1_desk.txt",
+      "type": "file",
+      "size": 51570
+    },
+    {
+      "path": "Examples_old/RGB-D/associations/fr1_desk2.txt",
+      "type": "file",
+      "size": 55800
+    },
+    {
+      "path": "Examples_old/RGB-D/associations/fr1_room.txt",
+      "type": "file",
+      "size": 121680
+    },
+    {
+      "path": "Examples_old/RGB-D/associations/fr1_xyz.txt",
+      "type": "file",
+      "size": 71280
+    },
+    {
+      "path": "Examples_old/RGB-D/associations/fr2_desk.txt",
+      "type": "file",
+      "size": 260370
+    },
+    {
+      "path": "Examples_old/RGB-D/associations/fr2_xyz.txt",
+      "type": "file",
+      "size": 325350
+    },
+    {
+      "path": "Examples_old/RGB-D/associations/fr3_nstr_tex_near.txt",
+      "type": "file",
+      "size": 147510
+    },
+    {
+      "path": "Examples_old/RGB-D/associations/fr3_office.txt",
+      "type": "file",
+      "size": 223920
+    },
+    {
+      "path": "Examples_old/RGB-D/associations/fr3_office_val.txt",
+      "type": "file",
+      "size": 232560
+    },
+    {
+      "path": "Examples_old/RGB-D/associations/fr3_str_tex_far.txt",
+      "type": "file",
+      "size": 81630
+    },
+    {
+      "path": "Examples_old/RGB-D/associations/fr3_str_tex_near.txt",
+      "type": "file",
+      "size": 95130
+    },
+    {
+      "path": "Examples_old/ROS/ORB_SLAM3/Asus.yaml",
+      "type": "file",
+      "size": 2032
+    },
+    {
+      "path": "Examples_old/ROS/ORB_SLAM3/CMakeLists.txt",
+      "type": "file",
+      "size": 2616
+    },
+    {
+      "path": "Examples_old/ROS/ORB_SLAM3/manifest.xml",
+      "type": "file",
+      "size": 374
+    },
+    {
+      "path": "Examples_old/ROS/ORB_SLAM3/src",
+      "type": "dir",
+      "size": null
+    },
+    {
+      "path": "Examples_old/Stereo-Inertial/EuRoC_IMU/MH01.txt",
+      "type": "file",
+      "size": 5210832
+    },
+    {
+      "path": "Examples_old/Stereo-Inertial/EuRoC_IMU/MH02.txt",
+      "type": "file",
+      "size": 4302332
+    },
+    {
+      "path": "Examples_old/Stereo-Inertial/EuRoC_IMU/MH03.txt",
+      "type": "file",
+      "size": 3815432
+    },
+    {
+      "path": "Examples_old/Stereo-Inertial/EuRoC_IMU/MH04.txt",
+      "type": "file",
+      "size": 2871307
+    },
+    {
+      "path": "Examples_old/Stereo-Inertial/EuRoC_IMU/MH05.txt",
+      "type": "file",
+      "size": 3215270
+    },
+    {
+      "path": "Examples_old/Stereo-Inertial/EuRoC_IMU/V101.txt",
+      "type": "file",
+      "size": 4113500
+    },
+    {
+      "path": "Examples_old/Stereo-Inertial/EuRoC_IMU/V102.txt",
+      "type": "file",
+      "size": 2405855
+    },
+    {
+      "path": "Examples_old/Stereo-Inertial/EuRoC_IMU/V103.txt",
+      "type": "file",
+      "size": 3024020
+    },
+    {
+      "path": "Examples_old/Stereo-Inertial/EuRoC_IMU/V201.txt",
+      "type": "file",
+      "size": 3217729
+    },
+    {
+      "path": "Examples_old/Stereo-Inertial/EuRoC_IMU/V202.txt",
+      "type": "file",
+      "size": 3305153
+    },
+    {
+      "path": "Examples_old/Stereo-Inertial/EuRoC_IMU/V203.txt",
+      "type": "file",
+      "size": 3283929
+    },
+    {
+      "path": "Examples_old/Stereo-Inertial/EuRoC_TimeStamps/MH01.txt",
+      "type": "file",
+      "size": 73640
+    },
+    {
+      "path": "Examples_old/Stereo-Inertial/EuRoC_TimeStamps/MH02.txt",
+      "type": "file",
+      "size": 60800
+    },
+    {
+      "path": "Examples_old/Stereo-Inertial/EuRoC_TimeStamps/MH03.txt",
+      "type": "file",
+      "size": 54000
+    },
+    {
+      "path": "Examples_old/Stereo-Inertial/EuRoC_TimeStamps/MH04.txt",
+      "type": "file",
+      "size": 40640
+    },
+    {
+      "path": "Examples_old/Stereo-Inertial/EuRoC_TimeStamps/MH05.txt",
+      "type": "file",
+      "size": 45460
+    },
+    {
+      "path": "Examples_old/Stereo-Inertial/EuRoC_TimeStamps/V101.txt",
+      "type": "file",
+      "size": 58240
+    },
+    {
+      "path": "Examples_old/Stereo-Inertial/EuRoC_TimeStamps/V102.txt",
+      "type": "file",
+      "size": 34200
+    },
+    {
+      "path": "Examples_old/Stereo-Inertial/EuRoC_TimeStamps/V103.txt",
+      "type": "file",
+      "size": 42980
+    },
+    {
+      "path": "Examples_old/Stereo-Inertial/EuRoC_TimeStamps/V201.txt",
+      "type": "file",
+      "size": 45600
+    },
+    {
+      "path": "Examples_old/Stereo-Inertial/EuRoC_TimeStamps/V202.txt",
+      "type": "file",
+      "size": 46960
+    },
+    {
+      "path": "Examples_old/Stereo-Inertial/EuRoC_TimeStamps/V203.txt",
+      "type": "file",
+      "size": 38420
+    },
+    {
+      "path": "Examples_old/Stereo-Inertial/EuRoC_TimeStamps/V203_2.txt",
+      "type": "file",
+      "size": 36400
+    },
+    {
+      "path": "Examples_old/Stereo-Inertial/MultiSession/EuRoC_MH01.yaml",
+      "type": "file",
+      "size": 5223
+    },
+    {
+      "path": "Examples_old/Stereo-Inertial/MultiSession/EuRoC_MH02.yaml",
+      "type": "file",
+      "size": 5253
+    },
+    {
+      "path": "Examples_old/Stereo-Inertial/MultiSession/EuRoC_MH03.yaml",
+      "type": "file",
+      "size": 5261
+    },
+    {
+      "path": "Examples_old/Stereo-Inertial/MultiSession/EuRoC_MH04.yaml",
+      "type": "file",
+      "size": 5261
+    },
+    {
+      "path": "Examples_old/Stereo-Inertial/MultiSession/EuRoC_MH05.yaml",
+      "type": "file",
+      "size": 5261
+    },
+    {
+      "path": "Examples_old/Stereo-Inertial/MultiSession/EuRoC_V101.yaml",
+      "type": "file",
+      "size": 5223
+    },
+    {
+      "path": "Examples_old/Stereo-Inertial/MultiSession/EuRoC_V102.yaml",
+      "type": "file",
+      "size": 5253
+    },
+    {
+      "path": "Examples_old/Stereo-Inertial/MultiSession/EuRoC_V103.yaml",
+      "type": "file",
+      "size": 5261
+    },
+    {
+      "path": "Examples_old/Stereo-Inertial/MultiSession/EuRoC_V201.yaml",
+      "type": "file",
+      "size": 5223
+    },
+    {
+      "path": "Examples_old/Stereo-Inertial/MultiSession/EuRoC_V202.yaml",
+      "type": "file",
+      "size": 5253
+    },
+    {
+      "path": "Examples_old/Stereo-Inertial/MultiSession/EuRoC_V203.yaml",
+      "type": "file",
+      "size": 5261
+    },
+    {
+      "path": "Examples_old/Stereo-Inertial/TUM_IMU/dataset-corridor1_512.txt",
+      "type": "file",
+      "size": 6034922
+    },
+    {
+      "path": "Examples_old/Stereo-Inertial/TUM_IMU/dataset-corridor2_1024.txt",
+      "type": "file",
+      "size": 6807522
+    },
+    {
+      "path": "Examples_old/Stereo-Inertial/TUM_IMU/dataset-corridor2_512.txt",
+      "type": "file",
+      "size": 6807522
+    },
+    {
+      "path": "Examples_old/Stereo-Inertial/TUM_IMU/dataset-corridor3_512.txt",
+      "type": "file",
+      "size": 5840957
+    },
+    {
+      "path": "Examples_old/Stereo-Inertial/TUM_IMU/dataset-corridor4_512.txt",
+      "type": "file",
+      "size": 1933733
+    },
+    {
+      "path": "Examples_old/Stereo-Inertial/TUM_IMU/dataset-corridor5_512.txt",
+      "type": "file",
+      "size": 5957023
+    },
+    {
+      "path": "Examples_old/Stereo-Inertial/TUM_IMU/dataset-magistrale1_512.txt",
+      "type": "file",
+      "size": 15626971
+    },
+    {
+      "path": "Examples_old/Stereo-Inertial/TUM_IMU/dataset-magistrale2_512.txt",
+      "type": "file",
+      "size": 10941633
+    },
+    {
+      "path": "Examples_old/Stereo-Inertial/TUM_IMU/dataset-magistrale3_512.txt",
+      "type": "file",
+      "size": 9809793
+    },
+    {
+      "path": "Examples_old/Stereo-Inertial/TUM_IMU/dataset-magistrale4_512.txt",
+      "type": "file",
+      "size": 12609311
+    },
+    {
+      "path": "Examples_old/Stereo-Inertial/TUM_IMU/dataset-magistrale5_512.txt",
+      "type": "file",
+      "size": 8999871
+    },
+    {
+      "path": "Examples_old/Stereo-Inertial/TUM_IMU/dataset-magistrale6_512.txt",
+      "type": "file",
+      "size": 11582541
+    },
+    {
+      "path": "Examples_old/Stereo-Inertial/TUM_IMU/dataset-outdoors1_512.txt",
+      "type": "file",
+      "size": 25938882
+    },
+    {
+      "path": "Examples_old/Stereo-Inertial/TUM_IMU/dataset-outdoors2_512.txt",
+      "type": "file",
+      "size": 18679273
+    },
+    {
+      "path": "Examples_old/Stereo-Inertial/TUM_IMU/dataset-outdoors3_512.txt",
+      "type": "file",
+      "size": 17083048
+    },
+    {
+      "path": "Examples_old/Stereo-Inertial/TUM_IMU/dataset-outdoors4_512.txt",
+      "type": "file",
+      "size": 14166494
+    },
+    {
+      "path": "Examples_old/Stereo-Inertial/TUM_IMU/dataset-outdoors5_512.txt",
+      "type": "file",
+      "size": 17959626
+    },
+    {
+      "path": "Examples_old/Stereo-Inertial/TUM_IMU/dataset-outdoors6_512.txt",
+      "type": "file",
+      "size": 29749189
+    },
+    {
+      "path": "Examples_old/Stereo-Inertial/TUM_IMU/dataset-outdoors7_512.txt",
+      "type": "file",
+      "size": 22543465
+    },
+    {
+      "path": "Examples_old/Stereo-Inertial/TUM_IMU/dataset-outdoors8_512.txt",
+      "type": "file",
+      "size": 16388213
+    },
+    {
+      "path": "Examples_old/Stereo-Inertial/TUM_IMU/dataset-room1_512.txt",
+      "type": "file",
+      "size": 2831804
+    },
+    {
+      "path": "Examples_old/Stereo-Inertial/TUM_IMU/dataset-room2_512.txt",
+      "type": "file",
+      "size": 2874197
+    },
+    {
+      "path": "Examples_old/Stereo-Inertial/TUM_IMU/dataset-room3_512.txt",
+      "type": "file",
+      "size": 2832266
+    },
+    {
+      "path": "Examples_old/Stereo-Inertial/TUM_IMU/dataset-room4_512.txt",
+      "type": "file",
+      "size": 2232296
+    },
+    {
+      "path": "Examples_old/Stereo-Inertial/TUM_IMU/dataset-room5_512.txt",
+      "type": "file",
+      "size": 2859836
+    },
+    {
+      "path": "Examples_old/Stereo-Inertial/TUM_IMU/dataset-room6_512.txt",
+      "type": "file",
+      "size": 2637332
+    },
+    {
+      "path": "Examples_old/Stereo-Inertial/TUM_IMU/dataset-slides1_512.txt",
+      "type": "file",
+      "size": 5637446
+    },
+    {
+      "path": "Examples_old/Stereo-Inertial/TUM_IMU/dataset-slides2_512.txt",
+      "type": "file",
+      "size": 4925437
+    },
+    {
+      "path": "Examples_old/Stereo-Inertial/TUM_IMU/dataset-slides3_512.txt",
+      "type": "file",
+      "size": 7300651
+    },
+    {
+      "path": "Examples_old/Stereo-Inertial/TUM_TimeStamps/dataset-corridor1_512.txt",
+      "type": "file",
+      "size": 119800
+    },
+    {
+      "path": "Examples_old/Stereo-Inertial/TUM_TimeStamps/dataset-corridor2_1024.txt",
+      "type": "file",
+      "size": 135471
+    },
+    {
+      "path": "Examples_old/Stereo-Inertial/TUM_TimeStamps/dataset-corridor2_512.txt",
+      "type": "file",
+      "size": 135440
+    },
+    {
+      "path": "Examples_old/Stereo-Inertial/TUM_TimeStamps/dataset-corridor3_512.txt",
+      "type": "file",
+      "size": 116040
+    },
+    {
+      "path": "Examples_old/Stereo-Inertial/TUM_TimeStamps/dataset-corridor4_512.txt",
+      "type": "file",
+      "size": 38540
+    },
+    {
+      "path": "Examples_old/Stereo-Inertial/TUM_TimeStamps/dataset-corridor5_512.txt",
+      "type": "file",
+      "size": 118280
+    },
+    {
+      "path": "Examples_old/Stereo-Inertial/TUM_TimeStamps/dataset-magistrale1_512.txt",
+      "type": "file",
+      "size": 308940
+    },
+    {
+      "path": "Examples_old/Stereo-Inertial/TUM_TimeStamps/dataset-magistrale2_512.txt",
+      "type": "file",
+      "size": 216200
+    },
+    {
+      "path": "Examples_old/Stereo-Inertial/TUM_TimeStamps/dataset-magistrale3_512.txt",
+      "type": "file",
+      "size": 194060
+    },
+    {
+      "path": "Examples_old/Stereo-Inertial/TUM_TimeStamps/dataset-magistrale4_512.txt",
+      "type": "file",
+      "size": 249600
+    },
+    {
+      "path": "Examples_old/Stereo-Inertial/TUM_TimeStamps/dataset-magistrale5_512.txt",
+      "type": "file",
+      "size": 178440
+    },
+    {
+      "path": "Examples_old/Stereo-Inertial/TUM_TimeStamps/dataset-magistrale6_512.txt",
+      "type": "file",
+      "size": 229940
+    },
+    {
+      "path": "Examples_old/Stereo-Inertial/TUM_TimeStamps/dataset-outdoors1_512.txt",
+      "type": "file",
+      "size": 512620
+    },
+    {
+      "path": "Examples_old/Stereo-Inertial/TUM_TimeStamps/dataset-outdoors2_512.txt",
+      "type": "file",
+      "size": 368980
+    },
+    {
+      "path": "Examples_old/Stereo-Inertial/TUM_TimeStamps/dataset-outdoors3_512.txt",
+      "type": "file",
+      "size": 337620
+    },
+    {
+      "path": "Examples_old/Stereo-Inertial/TUM_TimeStamps/dataset-outdoors4_512.txt",
+      "type": "file",
+      "size": 279980
+    },
+    {
+      "path": "Examples_old/Stereo-Inertial/TUM_TimeStamps/dataset-outdoors5_512.txt",
+      "type": "file",
+      "size": 354940
+    },
+    {
+      "path": "Examples_old/Stereo-Inertial/TUM_TimeStamps/dataset-outdoors6_512.txt",
+      "type": "file",
+      "size": 588060
+    },
+    {
+      "path": "Examples_old/Stereo-Inertial/TUM_TimeStamps/dataset-outdoors7_512.txt",
+      "type": "file",
+      "size": 448980
+    },
+    {
+      "path": "Examples_old/Stereo-Inertial/TUM_TimeStamps/dataset-outdoors8_512.txt",
+      "type": "file",
+      "size": 324260
+    },
+    {
+      "path": "Examples_old/Stereo-Inertial/TUM_TimeStamps/dataset-room1_512.txt",
+      "type": "file",
+      "size": 56420
+    },
+    {
+      "path": "Examples_old/Stereo-Inertial/TUM_TimeStamps/dataset-room2_512.txt",
+      "type": "file",
+      "size": 57640
+    },
+    {
+      "path": "Examples_old/Stereo-Inertial/TUM_TimeStamps/dataset-room3_512.txt",
+      "type": "file",
+      "size": 56420
+    },
+    {
+      "path": "Examples_old/Stereo-Inertial/TUM_TimeStamps/dataset-room4_512.txt",
+      "type": "file",
+      "size": 44560
+    },
+    {
+      "path": "Examples_old/Stereo-Inertial/TUM_TimeStamps/dataset-room5_512.txt",
+      "type": "file",
+      "size": 56940
+    },
+    {
+      "path": "Examples_old/Stereo-Inertial/TUM_TimeStamps/dataset-room6_512.txt",
+      "type": "file",
+      "size": 52720
+    },
+    {
+      "path": "Examples_old/Stereo-Inertial/TUM_TimeStamps/dataset-slides1_512.txt",
+      "type": "file",
+      "size": 111640
+    },
+    {
+      "path": "Examples_old/Stereo-Inertial/TUM_TimeStamps/dataset-slides2_512.txt",
+      "type": "file",
+      "size": 98160
+    },
+    {
+      "path": "Examples_old/Stereo-Inertial/TUM_TimeStamps/dataset-slides3_512.txt",
+      "type": "file",
+      "size": 144660
+    },
+    {
+      "path": "Examples_old/Stereo/EuRoC_TimeStamps/MH01.txt",
+      "type": "file",
+      "size": 73640
+    },
+    {
+      "path": "Examples_old/Stereo/EuRoC_TimeStamps/MH02.txt",
+      "type": "file",
+      "size": 60800
+    },
+    {
+      "path": "Examples_old/Stereo/EuRoC_TimeStamps/MH03.txt",
+      "type": "file",
+      "size": 54000
+    },
+    {
+      "path": "Examples_old/Stereo/EuRoC_TimeStamps/MH04.txt",
+      "type": "file",
+      "size": 40640
+    },
+    {
+      "path": "Examples_old/Stereo/EuRoC_TimeStamps/MH05.txt",
+      "type": "file",
+      "size": 45460
+    },
+    {
+      "path": "Examples_old/Stereo/EuRoC_TimeStamps/V101.txt",
+      "type": "file",
+      "size": 58240
+    },
+    {
+      "path": "Examples_old/Stereo/EuRoC_TimeStamps/V102.txt",
+      "type": "file",
+      "size": 34200
+    },
+    {
+      "path": "Examples_old/Stereo/EuRoC_TimeStamps/V103.txt",
+      "type": "file",
+      "size": 42980
+    },
+    {
+      "path": "Examples_old/Stereo/EuRoC_TimeStamps/V201.txt",
+      "type": "file",
+      "size": 45600
+    },
+    {
+      "path": "Examples_old/Stereo/EuRoC_TimeStamps/V202.txt",
+      "type": "file",
+      "size": 46960
+    },
+    {
+      "path": "Examples_old/Stereo/EuRoC_TimeStamps/V203.txt",
+      "type": "file",
+      "size": 38420
+    },
+    {
+      "path": "Examples_old/Stereo/MultiSession/EuRoC_MH01.yaml",
+      "type": "file",
+      "size": 4390
+    },
+    {
+      "path": "Examples_old/Stereo/MultiSession/EuRoC_MH02.yaml",
+      "type": "file",
+      "size": 4411
+    },
+    {
+      "path": "Examples_old/Stereo/MultiSession/EuRoC_MH03.yaml",
+      "type": "file",
+      "size": 4419
+    },
+    {
+      "path": "Examples_old/Stereo/MultiSession/EuRoC_MH04.yaml",
+      "type": "file",
+      "size": 4419
+    },
+    {
+      "path": "Examples_old/Stereo/MultiSession/EuRoC_MH05.yaml",
+      "type": "file",
+      "size": 4419
+    },
+    {
+      "path": "Examples_old/Stereo/MultiSession/EuRoC_V101.yaml",
+      "type": "file",
+      "size": 4390
+    },
+    {
+      "path": "Examples_old/Stereo/MultiSession/EuRoC_V102.yaml",
+      "type": "file",
+      "size": 4411
+    },
+    {
+      "path": "Examples_old/Stereo/MultiSession/EuRoC_V103.yaml",
+      "type": "file",
+      "size": 4419
+    },
+    {
+      "path": "Examples_old/Stereo/MultiSession/EuRoC_V201.yaml",
+      "type": "file",
+      "size": 4390
+    },
+    {
+      "path": "Examples_old/Stereo/MultiSession/EuRoC_V202.yaml",
+      "type": "file",
+      "size": 4411
+    },
+    {
+      "path": "Examples_old/Stereo/MultiSession/EuRoC_V203.yaml",
+      "type": "file",
+      "size": 4419
+    },
+    {
+      "path": "Examples_old/Stereo/TUM_TimeStamps/dataset-corridor1_512.txt",
+      "type": "file",
+      "size": 119800
+    },
+    {
+      "path": "Examples_old/Stereo/TUM_TimeStamps/dataset-corridor2_1024.txt",
+      "type": "file",
+      "size": 135471
+    },
+    {
+      "path": "Examples_old/Stereo/TUM_TimeStamps/dataset-corridor2_512.txt",
+      "type": "file",
+      "size": 135440
+    },
+    {
+      "path": "Examples_old/Stereo/TUM_TimeStamps/dataset-corridor3_512.txt",
+      "type": "file",
+      "size": 116040
+    },
+    {
+      "path": "Examples_old/Stereo/TUM_TimeStamps/dataset-corridor4_512.txt",
+      "type": "file",
+      "size": 38540
+    },
+    {
+      "path": "Examples_old/Stereo/TUM_TimeStamps/dataset-corridor5_512.txt",
+      "type": "file",
+      "size": 118280
+    },
+    {
+      "path": "Examples_old/Stereo/TUM_TimeStamps/dataset-magistrale1_512.txt",
+      "type": "file",
+      "size": 308940
+    },
+    {
+      "path": "Examples_old/Stereo/TUM_TimeStamps/dataset-magistrale2_512.txt",
+      "type": "file",
+      "size": 216200
+    },
+    {
+      "path": "Examples_old/Stereo/TUM_TimeStamps/dataset-magistrale3_512.txt",
+      "type": "file",
+      "size": 194060
+    },
+    {
+      "path": "Examples_old/Stereo/TUM_TimeStamps/dataset-magistrale4_512.txt",
+      "type": "file",
+      "size": 249600
+    },
+    {
+      "path": "Examples_old/Stereo/TUM_TimeStamps/dataset-magistrale5_512.txt",
+      "type": "file",
+      "size": 178440
+    },
+    {
+      "path": "Examples_old/Stereo/TUM_TimeStamps/dataset-magistrale6_512.txt",
+      "type": "file",
+      "size": 229940
+    },
+    {
+      "path": "Examples_old/Stereo/TUM_TimeStamps/dataset-outdoors1_512.txt",
+      "type": "file",
+      "size": 512620
+    },
+    {
+      "path": "Examples_old/Stereo/TUM_TimeStamps/dataset-outdoors2_512.txt",
+      "type": "file",
+      "size": 368980
+    },
+    {
+      "path": "Examples_old/Stereo/TUM_TimeStamps/dataset-outdoors3_512.txt",
+      "type": "file",
+      "size": 337620
+    },
+    {
+      "path": "Examples_old/Stereo/TUM_TimeStamps/dataset-outdoors4_512.txt",
+      "type": "file",
+      "size": 279980
+    },
+    {
+      "path": "Examples_old/Stereo/TUM_TimeStamps/dataset-outdoors5_512.txt",
+      "type": "file",
+      "size": 354940
+    },
+    {
+      "path": "Examples_old/Stereo/TUM_TimeStamps/dataset-outdoors6_512.txt",
+      "type": "file",
+      "size": 588060
+    },
+    {
+      "path": "Examples_old/Stereo/TUM_TimeStamps/dataset-outdoors7_512.txt",
+      "type": "file",
+      "size": 448980
+    },
+    {
+      "path": "Examples_old/Stereo/TUM_TimeStamps/dataset-outdoors8_512.txt",
+      "type": "file",
+      "size": 324260
+    },
+    {
+      "path": "Examples_old/Stereo/TUM_TimeStamps/dataset-room1_512.txt",
+      "type": "file",
+      "size": 56420
+    },
+    {
+      "path": "Examples_old/Stereo/TUM_TimeStamps/dataset-room2_512.txt",
+      "type": "file",
+      "size": 57640
+    },
+    {
+      "path": "Examples_old/Stereo/TUM_TimeStamps/dataset-room3_512.txt",
+      "type": "file",
+      "size": 56420
+    },
+    {
+      "path": "Examples_old/Stereo/TUM_TimeStamps/dataset-room4_512.txt",
+      "type": "file",
+      "size": 44560
+    },
+    {
+      "path": "Examples_old/Stereo/TUM_TimeStamps/dataset-room5_512.txt",
+      "type": "file",
+      "size": 56940
+    },
+    {
+      "path": "Examples_old/Stereo/TUM_TimeStamps/dataset-room6_512.txt",
+      "type": "file",
+      "size": 52720
+    },
+    {
+      "path": "Examples_old/Stereo/TUM_TimeStamps/dataset-slides1_512.txt",
+      "type": "file",
+      "size": 111640
+    },
+    {
+      "path": "Examples_old/Stereo/TUM_TimeStamps/dataset-slides2_512.txt",
+      "type": "file",
+      "size": 98160
+    },
+    {
+      "path": "Examples_old/Stereo/TUM_TimeStamps/dataset-slides3_512.txt",
+      "type": "file",
+      "size": 144660
+    },
+    {
+      "path": "Thirdparty/DBoW2/DBoW2/BowVector.cpp",
+      "type": "file",
+      "size": 2752
+    },
+    {
+      "path": "Thirdparty/DBoW2/DBoW2/BowVector.h",
+      "type": "file",
+      "size": 2199
+    },
+    {
+      "path": "Thirdparty/DBoW2/DBoW2/FClass.h",
+      "type": "file",
+      "size": 1647
+    },
+    {
+      "path": "Thirdparty/DBoW2/DBoW2/FORB.cpp",
+      "type": "file",
+      "size": 4409
+    },
+    {
+      "path": "Thirdparty/DBoW2/DBoW2/FORB.h",
+      "type": "file",
+      "size": 1676
+    },
+    {
+      "path": "Thirdparty/DBoW2/DBoW2/FeatureVector.cpp",
+      "type": "file",
+      "size": 1831
+    },
+    {
+      "path": "Thirdparty/DBoW2/DBoW2/FeatureVector.h",
+      "type": "file",
+      "size": 1410
+    },
+    {
+      "path": "Thirdparty/DBoW2/DBoW2/ScoringObject.cpp",
+      "type": "file",
+      "size": 7890
+    },
+    {
+      "path": "Thirdparty/DBoW2/DBoW2/ScoringObject.h",
+      "type": "file",
+      "size": 2449
+    },
+    {
+      "path": "Thirdparty/DBoW2/DBoW2/TemplatedVocabulary.h",
+      "type": "file",
+      "size": 42457
+    },
+    {
+      "path": "Thirdparty/DBoW2/DUtils/Random.cpp",
+      "type": "file",
+      "size": 2886
+    },
+    {
+      "path": "Thirdparty/DBoW2/DUtils/Random.h",
+      "type": "file",
+      "size": 3774
+    },
+    {
+      "path": "Thirdparty/DBoW2/DUtils/Timestamp.cpp",
+      "type": "file",
+      "size": 5117
+    },
+    {
+      "path": "Thirdparty/DBoW2/DUtils/Timestamp.h",
+      "type": "file",
+      "size": 4567
+    },
+    {
+      "path": "Thirdparty/Sophus/examples/CMakeLists.txt",
+      "type": "file",
+      "size": 247
+    },
+    {
+      "path": "Thirdparty/Sophus/examples/HelloSO3.cpp",
+      "type": "file",
+      "size": 1512
+    },
+    {
+      "path": "Thirdparty/Sophus/py/cpp_gencode",
+      "type": "dir",
+      "size": null
+    },
+    {
+      "path": "Thirdparty/Sophus/py/run_tests.sh",
+      "type": "file",
+      "size": 287
+    },
+    {
+      "path": "Thirdparty/Sophus/py/sophus",
+      "type": "dir",
+      "size": null
+    },
+    {
+      "path": "Thirdparty/Sophus/rst-dir/conf.py",
+      "type": "file",
+      "size": 1872
+    },
+    {
+      "path": "Thirdparty/Sophus/rst-dir/page_index.rst",
+      "type": "file",
+      "size": 197
+    },
+    {
+      "path": "Thirdparty/Sophus/rst-dir/pysophus.rst",
+      "type": "file",
+      "size": 322
+    },
+    {
+      "path": "Thirdparty/Sophus/scripts/install_docs_deps.sh",
+      "type": "file",
+      "size": 402
+    },
+    {
+      "path": "Thirdparty/Sophus/scripts/install_linux_deps.sh",
+      "type": "file",
+      "size": 705
+    },
+    {
+      "path": "Thirdparty/Sophus/scripts/install_osx_deps.sh",
+      "type": "file",
+      "size": 484
+    },
+    {
+      "path": "Thirdparty/Sophus/scripts/run_cpp_tests.sh",
+      "type": "file",
+      "size": 201
+    },
+    {
+      "path": "Thirdparty/Sophus/sophus/average.hpp",
+      "type": "file",
+      "size": 8227
+    },
+    {
+      "path": "Thirdparty/Sophus/sophus/common.hpp",
+      "type": "file",
+      "size": 4625
+    },
+    {
+      "path": "Thirdparty/Sophus/sophus/example_ensure_handler.cpp",
+      "type": "file",
+      "size": 398
+    },
+    {
+      "path": "Thirdparty/Sophus/sophus/formatstring.hpp",
+      "type": "file",
+      "size": 1810
+    },
+    {
+      "path": "Thirdparty/Sophus/sophus/geometry.hpp",
+      "type": "file",
+      "size": 6141
+    },
+    {
+      "path": "Thirdparty/Sophus/sophus/interpolate.hpp",
+      "type": "file",
+      "size": 1282
+    },
+    {
+      "path": "Thirdparty/Sophus/sophus/interpolate_details.hpp",
+      "type": "file",
+      "size": 2647
+    },
+    {
+      "path": "Thirdparty/Sophus/sophus/num_diff.hpp",
+      "type": "file",
+      "size": 2850
+    },
+    {
+      "path": "Thirdparty/Sophus/sophus/rotation_matrix.hpp",
+      "type": "file",
+      "size": 2685
+    },
+    {
+      "path": "Thirdparty/Sophus/sophus/rxso2.hpp",
+      "type": "file",
+      "size": 22042
+    },
+    {
+      "path": "Thirdparty/Sophus/sophus/rxso3.hpp",
+      "type": "file",
+      "size": 24958
+    },
+    {
+      "path": "Thirdparty/Sophus/sophus/se2.hpp",
+      "type": "file",
+      "size": 26622
+    },
+    {
+      "path": "Thirdparty/Sophus/sophus/se3.hpp",
+      "type": "file",
+      "size": 35703
+    },
+    {
+      "path": "Thirdparty/Sophus/sophus/sim2.hpp",
+      "type": "file",
+      "size": 24160
+    },
+    {
+      "path": "Thirdparty/Sophus/sophus/sim3.hpp",
+      "type": "file",
+      "size": 24983
+    },
+    {
+      "path": "Thirdparty/Sophus/sophus/sim_details.hpp",
+      "type": "file",
+      "size": 3536
+    },
+    {
+      "path": "Thirdparty/Sophus/sophus/so2.hpp",
+      "type": "file",
+      "size": 21194
+    },
+    {
+      "path": "Thirdparty/Sophus/sophus/so3.hpp",
+      "type": "file",
+      "size": 28975
+    },
+    {
+      "path": "Thirdparty/Sophus/sophus/test_macros.hpp",
+      "type": "file",
+      "size": 6620
+    },
+    {
+      "path": "Thirdparty/Sophus/sophus/types.hpp",
+      "type": "file",
+      "size": 6323
+    },
+    {
+      "path": "Thirdparty/Sophus/sophus/velocities.hpp",
+      "type": "file",
+      "size": 2401
+    },
+    {
+      "path": "Thirdparty/Sophus/test/CMakeLists.txt",
+      "type": "file",
+      "size": 47
+    },
+    {
+      "path": "Thirdparty/Sophus/test/ceres",
+      "type": "dir",
+      "size": null
+    },
+    {
+      "path": "Thirdparty/Sophus/test/core",
+      "type": "dir",
+      "size": null
+    },
+    {
+      "path": "Thirdparty/g2o/g2o/core",
+      "type": "dir",
+      "size": null
+    },
+    {
+      "path": "Thirdparty/g2o/g2o/solvers",
+      "type": "dir",
+      "size": null
+    },
+    {
+      "path": "Thirdparty/g2o/g2o/stuff",
+      "type": "dir",
+      "size": null
+    },
+    {
+      "path": "Thirdparty/g2o/g2o/types",
+      "type": "dir",
+      "size": null
+    },
+    {
+      "path": "evaluation/Ground_truth/EuRoC_imu/MH_GT.txt",
+      "type": "file",
+      "size": 23044534
+    },
+    {
+      "path": "evaluation/Ground_truth/EuRoC_imu/V1_GT.txt",
+      "type": "file",
+      "size": 11269934
+    },
+    {
+      "path": "evaluation/Ground_truth/EuRoC_imu/V2_GT.txt",
+      "type": "file",
+      "size": 11668648
+    },
+    {
+      "path": "evaluation/Ground_truth/EuRoC_left_cam/MH01_GT.txt",
+      "type": "file",
+      "size": 457984
+    },
+    {
+      "path": "evaluation/Ground_truth/EuRoC_left_cam/MH02_GT.txt",
+      "type": "file",
+      "size": 377727
+    },
+    {
+      "path": "evaluation/Ground_truth/EuRoC_left_cam/MH03_GT.txt",
+      "type": "file",
+      "size": 331030
+    },
+    {
+      "path": "evaluation/Ground_truth/EuRoC_left_cam/MH04_GT.txt",
+      "type": "file",
+      "size": 248925
+    },
+    {
+      "path": "evaluation/Ground_truth/EuRoC_left_cam/MH05_GT.txt",
+      "type": "file",
+      "size": 279688
+    },
+    {
+      "path": "evaluation/Ground_truth/EuRoC_left_cam/MH_GT.txt",
+      "type": "file",
+      "size": 1694974
+    },
+    {
+      "path": "evaluation/Ground_truth/EuRoC_left_cam/V101_GT.txt",
+      "type": "file",
+      "size": 361265
+    },
+    {
+      "path": "evaluation/Ground_truth/EuRoC_left_cam/V102_GT.txt",
+      "type": "file",
+      "size": 210149
+    },
+    {
+      "path": "evaluation/Ground_truth/EuRoC_left_cam/V103_GT.txt",
+      "type": "file",
+      "size": 262982
+    },
+    {
+      "path": "evaluation/Ground_truth/EuRoC_left_cam/V1_GT.txt",
+      "type": "file",
+      "size": 834206
+    },
+    {
+      "path": "evaluation/Ground_truth/EuRoC_left_cam/V201_GT.txt",
+      "type": "file",
+      "size": 282484
+    },
+    {
+      "path": "evaluation/Ground_truth/EuRoC_left_cam/V202_GT.txt",
+      "type": "file",
+      "size": 291308
+    },
+    {
+      "path": "evaluation/Ground_truth/EuRoC_left_cam/V203_GT.txt",
+      "type": "file",
+      "size": 238468
+    },
+    {
+      "path": "evaluation/Ground_truth/EuRoC_left_cam/V2_GT.txt",
+      "type": "file",
+      "size": 812070
+    },
+    {
+      "path": "Examples_old/ROS/ORB_SLAM3/src/AR",
+      "type": "dir",
+      "size": null
+    },
+    {
+      "path": "Examples_old/ROS/ORB_SLAM3/src/ros_mono.cc",
+      "type": "file",
+      "size": 2554
+    },
+    {
+      "path": "Examples_old/ROS/ORB_SLAM3/src/ros_mono_inertial.cc",
+      "type": "file",
+      "size": 5358
+    },
+    {
+      "path": "Examples_old/ROS/ORB_SLAM3/src/ros_rgbd.cc",
+      "type": "file",
+      "size": 3390
+    },
+    {
+      "path": "Examples_old/ROS/ORB_SLAM3/src/ros_stereo.cc",
+      "type": "file",
+      "size": 5441
+    },
+    {
+      "path": "Examples_old/ROS/ORB_SLAM3/src/ros_stereo_inertial.cc",
+      "type": "file",
+      "size": 8629
+    },
+    {
+      "path": "Thirdparty/Sophus/py/cpp_gencode/Se2_Dx_exp_x.cpp",
+      "type": "file",
+      "size": 585
+    },
+    {
+      "path": "Thirdparty/Sophus/py/cpp_gencode/Se2_Dx_this_mul_exp_x_at_0.cpp",
+      "type": "file",
+      "size": 221
+    },
+    {
+      "path": "Thirdparty/Sophus/py/cpp_gencode/Se3_Dx_exp_x.cpp",
+      "type": "file",
+      "size": 4714
+    },
+    {
+      "path": "Thirdparty/Sophus/py/cpp_gencode/Se3_Dx_this_mul_exp_x_at_0.cpp",
+      "type": "file",
+      "size": 1405
+    },
+    {
+      "path": "Thirdparty/Sophus/py/cpp_gencode/So2_Dx_exp_x.cpp",
+      "type": "file",
+      "size": 49
+    },
+    {
+      "path": "Thirdparty/Sophus/py/cpp_gencode/So2_Dx_this_mul_exp_x_at_0.cpp",
+      "type": "file",
+      "size": 37
+    },
+    {
+      "path": "Thirdparty/Sophus/py/cpp_gencode/So3_Dx_exp_x.cpp",
+      "type": "file",
+      "size": 867
+    },
+    {
+      "path": "Thirdparty/Sophus/py/cpp_gencode/So3_Dx_this_mul_exp_x_at_0.cpp",
+      "type": "file",
+      "size": 379
+    },
+    {
+      "path": "Thirdparty/Sophus/py/sophus/__init__.py",
+      "type": "file",
+      "size": 324
+    },
+    {
+      "path": "Thirdparty/Sophus/py/sophus/complex.py",
+      "type": "file",
+      "size": 3282
+    },
+    {
+      "path": "Thirdparty/Sophus/py/sophus/cse_codegen.py",
+      "type": "file",
+      "size": 473
+    },
+    {
+      "path": "Thirdparty/Sophus/py/sophus/dual_quaternion.py",
+      "type": "file",
+      "size": 3053
+    },
+    {
+      "path": "Thirdparty/Sophus/py/sophus/matrix.py",
+      "type": "file",
+      "size": 1027
+    },
+    {
+      "path": "Thirdparty/Sophus/py/sophus/quaternion.py",
+      "type": "file",
+      "size": 4270
+    },
+    {
+      "path": "Thirdparty/Sophus/py/sophus/se2.py",
+      "type": "file",
+      "size": 7535
+    },
+    {
+      "path": "Thirdparty/Sophus/py/sophus/se3.py",
+      "type": "file",
+      "size": 9301
+    },
+    {
+      "path": "Thirdparty/Sophus/py/sophus/so2.py",
+      "type": "file",
+      "size": 5848
+    },
+    {
+      "path": "Thirdparty/Sophus/py/sophus/so3.py",
+      "type": "file",
+      "size": 8954
+    },
+    {
+      "path": "Thirdparty/Sophus/py/sophus/so3_codegen.py",
+      "type": "file",
+      "size": 71
+    },
+    {
+      "path": "Thirdparty/Sophus/test/ceres/CMakeLists.txt",
+      "type": "file",
+      "size": 645
+    },
+    {
+      "path": "Thirdparty/Sophus/test/ceres/local_parameterization_se3.hpp",
+      "type": "file",
+      "size": 1297
+    },
+    {
+      "path": "Thirdparty/Sophus/test/ceres/test_ceres_se3.cpp",
+      "type": "file",
+      "size": 7199
+    },
+    {
+      "path": "Thirdparty/Sophus/test/core/CMakeLists.txt",
+      "type": "file",
+      "size": 579
+    },
+    {
+      "path": "Thirdparty/Sophus/test/core/test_common.cpp",
+      "type": "file",
+      "size": 1891
+    },
+    {
+      "path": "Thirdparty/Sophus/test/core/test_geometry.cpp",
+      "type": "file",
+      "size": 4716
+    },
+    {
+      "path": "Thirdparty/Sophus/test/core/test_rxso2.cpp",
+      "type": "file",
+      "size": 9713
+    },
+    {
+      "path": "Thirdparty/Sophus/test/core/test_rxso3.cpp",
+      "type": "file",
+      "size": 11040
+    },
+    {
+      "path": "Thirdparty/Sophus/test/core/test_se2.cpp",
+      "type": "file",
+      "size": 9566
+    },
+    {
+      "path": "Thirdparty/Sophus/test/core/test_se3.cpp",
+      "type": "file",
+      "size": 10229
+    },
+    {
+      "path": "Thirdparty/Sophus/test/core/test_sim2.cpp",
+      "type": "file",
+      "size": 8500
+    },
+    {
+      "path": "Thirdparty/Sophus/test/core/test_sim3.cpp",
+      "type": "file",
+      "size": 11189
+    },
+    {
+      "path": "Thirdparty/Sophus/test/core/test_so2.cpp",
+      "type": "file",
+      "size": 5898
+    },
+    {
+      "path": "Thirdparty/Sophus/test/core/test_so3.cpp",
+      "type": "file",
+      "size": 10276
+    },
+    {
+      "path": "Thirdparty/Sophus/test/core/test_velocities.cpp",
+      "type": "file",
+      "size": 4572
+    },
+    {
+      "path": "Thirdparty/Sophus/test/core/tests.hpp",
+      "type": "file",
+      "size": 21398
+    },
+    {
+      "path": "Thirdparty/g2o/g2o/core/base_binary_edge.h",
+      "type": "file",
+      "size": 4621
+    },
+    {
+      "path": "Thirdparty/g2o/g2o/core/base_binary_edge.hpp",
+      "type": "file",
+      "size": 7868
+    },
+    {
+      "path": "Thirdparty/g2o/g2o/core/base_edge.h",
+      "type": "file",
+      "size": 3912
+    },
+    {
+      "path": "Thirdparty/g2o/g2o/core/base_multi_edge.h",
+      "type": "file",
+      "size": 3921
+    },
+    {
+      "path": "Thirdparty/g2o/g2o/core/base_multi_edge.hpp",
+      "type": "file",
+      "size": 7378
+    },
+    {
+      "path": "Thirdparty/g2o/g2o/core/base_unary_edge.h",
+      "type": "file",
+      "size": 3603
+    },
+    {
+      "path": "Thirdparty/g2o/g2o/core/base_unary_edge.hpp",
+      "type": "file",
+      "size": 4571
+    },
+    {
+      "path": "Thirdparty/g2o/g2o/core/base_vertex.h",
+      "type": "file",
+      "size": 4545
+    },
+    {
+      "path": "Thirdparty/g2o/g2o/core/base_vertex.hpp",
+      "type": "file",
+      "size": 2152
+    },
+    {
+      "path": "Thirdparty/g2o/g2o/core/batch_stats.cpp",
+      "type": "file",
+      "size": 3360
+    },
+    {
+      "path": "Thirdparty/g2o/g2o/core/batch_stats.h",
+      "type": "file",
+      "size": 3782
+    },
+    {
+      "path": "Thirdparty/g2o/g2o/core/block_solver.h",
+      "type": "file",
+      "size": 7527
+    },
+    {
+      "path": "Thirdparty/g2o/g2o/core/block_solver.hpp",
+      "type": "file",
+      "size": 22001
+    },
+    {
+      "path": "Thirdparty/g2o/g2o/core/cache.cpp",
+      "type": "file",
+      "size": 5242
+    },
+    {
+      "path": "Thirdparty/g2o/g2o/core/cache.h",
+      "type": "file",
+      "size": 4952
+    },
+    {
+      "path": "Thirdparty/g2o/g2o/core/creators.h",
+      "type": "file",
+      "size": 2656
+    },
+    {
+      "path": "Thirdparty/g2o/g2o/core/eigen_types.h",
+      "type": "file",
+      "size": 4167
+    },
+    {
+      "path": "Thirdparty/g2o/g2o/core/estimate_propagator.cpp",
+      "type": "file",
+      "size": 10141
+    },
+    {
+      "path": "Thirdparty/g2o/g2o/core/estimate_propagator.h",
+      "type": "file",
+      "size": 6395
+    },
+    {
+      "path": "Thirdparty/g2o/g2o/core/factory.cpp",
+      "type": "file",
+      "size": 6420
+    },
+    {
+      "path": "Thirdparty/g2o/g2o/core/factory.h",
+      "type": "file",
+      "size": 5930
+    },
+    {
+      "path": "Thirdparty/g2o/g2o/core/hyper_dijkstra.cpp",
+      "type": "file",
+      "size": 9489
+    },
+    {
+      "path": "Thirdparty/g2o/g2o/core/hyper_dijkstra.h",
+      "type": "file",
+      "size": 4579
+    },
+    {
+      "path": "Thirdparty/g2o/g2o/core/hyper_graph.cpp",
+      "type": "file",
+      "size": 4368
+    },
+    {
+      "path": "Thirdparty/g2o/g2o/core/hyper_graph.h",
+      "type": "file",
+      "size": 8135
+    },
+    {
+      "path": "Thirdparty/g2o/g2o/core/hyper_graph_action.cpp",
+      "type": "file",
+      "size": 8960
+    },
+    {
+      "path": "Thirdparty/g2o/g2o/core/hyper_graph_action.h",
+      "type": "file",
+      "size": 7930
+    },
+    {
+      "path": "Thirdparty/g2o/g2o/core/jacobian_workspace.cpp",
+      "type": "file",
+      "size": 3376
+    },
+    {
+      "path": "Thirdparty/g2o/g2o/core/jacobian_workspace.h",
+      "type": "file",
+      "size": 3321
+    },
+    {
+      "path": "Thirdparty/g2o/g2o/core/linear_solver.h",
+      "type": "file",
+      "size": 3811
+    },
+    {
+      "path": "Thirdparty/g2o/g2o/core/marginal_covariance_cholesky.cpp",
+      "type": "file",
+      "size": 7345
+    },
+    {
+      "path": "Thirdparty/g2o/g2o/core/marginal_covariance_cholesky.h",
+      "type": "file",
+      "size": 4172
+    },
+    {
+      "path": "Thirdparty/g2o/g2o/core/matrix_operations.h",
+      "type": "file",
+      "size": 3358
+    },
+    {
+      "path": "Thirdparty/g2o/g2o/core/matrix_structure.cpp",
+      "type": "file",
+      "size": 3566
+    },
+    {
+      "path": "Thirdparty/g2o/g2o/core/matrix_structure.h",
+      "type": "file",
+      "size": 2581
+    },
+    {
+      "path": "Thirdparty/g2o/g2o/core/openmp_mutex.h",
+      "type": "file",
+      "size": 2916
+    },
+    {
+      "path": "Thirdparty/g2o/g2o/core/optimizable_graph.cpp",
+      "type": "file",
+      "size": 27537
+    },
+    {
+      "path": "Thirdparty/g2o/g2o/core/optimizable_graph.h",
+      "type": "file",
+      "size": 25597
+    },
+    {
+      "path": "Thirdparty/g2o/g2o/core/optimization_algorithm.cpp",
+      "type": "file",
+      "size": 2283
+    },
+    {
+      "path": "Thirdparty/g2o/g2o/core/optimization_algorithm.h",
+      "type": "file",
+      "size": 4355
+    },
+    {
+      "path": "Thirdparty/g2o/g2o/core/optimization_algorithm_dogleg.cpp",
+      "type": "file",
+      "size": 8625
+    },
+    {
+      "path": "Thirdparty/g2o/g2o/core/optimization_algorithm_dogleg.h",
+      "type": "file",
+      "size": 3493
+    },
+    {
+      "path": "Thirdparty/g2o/g2o/core/optimization_algorithm_factory.cpp",
+      "type": "file",
+      "size": 4892
+    },
+    {
+      "path": "Thirdparty/g2o/g2o/core/optimization_algorithm_factory.h",
+      "type": "file",
+      "size": 6192
+    },
+    {
+      "path": "Thirdparty/g2o/g2o/core/optimization_algorithm_gauss_newton.cpp",
+      "type": "file",
+      "size": 3491
+    },
+    {
+      "path": "Thirdparty/g2o/g2o/core/optimization_algorithm_gauss_newton.h",
+      "type": "file",
+      "size": 2177
+    },
+    {
+      "path": "Thirdparty/g2o/g2o/core/optimization_algorithm_levenberg.cpp",
+      "type": "file",
+      "size": 6915
+    },
+    {
+      "path": "Thirdparty/g2o/g2o/core/optimization_algorithm_levenberg.h",
+      "type": "file",
+      "size": 3815
+    },
+    {
+      "path": "Thirdparty/g2o/g2o/core/optimization_algorithm_property.h",
+      "type": "file",
+      "size": 2593
+    },
+    {
+      "path": "Thirdparty/g2o/g2o/core/optimization_algorithm_with_hessian.cpp",
+      "type": "file",
+      "size": 3537
+    },
+    {
+      "path": "Thirdparty/g2o/g2o/core/optimization_algorithm_with_hessian.h",
+      "type": "file",
+      "size": 2731
+    },
+    {
+      "path": "Thirdparty/g2o/g2o/core/parameter.cpp",
+      "type": "file",
+      "size": 1587
+    },
+    {
+      "path": "Thirdparty/g2o/g2o/core/parameter.h",
+      "type": "file",
+      "size": 2166
+    },
+    {
+      "path": "Thirdparty/g2o/g2o/core/parameter_container.cpp",
+      "type": "file",
+      "size": 4459
+    },
+    {
+      "path": "Thirdparty/g2o/g2o/core/parameter_container.h",
+      "type": "file",
+      "size": 2827
+    },
+    {
+      "path": "Thirdparty/g2o/g2o/core/robust_kernel.cpp",
+      "type": "file",
+      "size": 1670
+    },
+    {
+      "path": "Thirdparty/g2o/g2o/core/robust_kernel.h",
+      "type": "file",
+      "size": 2835
+    },
+    {
+      "path": "Thirdparty/g2o/g2o/core/robust_kernel_factory.cpp",
+      "type": "file",
+      "size": 3401
+    },
+    {
+      "path": "Thirdparty/g2o/g2o/core/robust_kernel_factory.h",
+      "type": "file",
+      "size": 4749
+    },
+    {
+      "path": "Thirdparty/g2o/g2o/core/robust_kernel_impl.cpp",
+      "type": "file",
+      "size": 4973
+    },
+    {
+      "path": "Thirdparty/g2o/g2o/core/robust_kernel_impl.h",
+      "type": "file",
+      "size": 4678
+    },
+    {
+      "path": "Thirdparty/g2o/g2o/core/solver.cpp",
+      "type": "file",
+      "size": 2610
+    },
+    {
+      "path": "Thirdparty/g2o/g2o/core/solver.h",
+      "type": "file",
+      "size": 5444
+    },
+    {
+      "path": "Thirdparty/g2o/g2o/core/sparse_block_matrix.h",
+      "type": "file",
+      "size": 9514
+    },
+    {
+      "path": "Thirdparty/g2o/g2o/core/sparse_block_matrix.hpp",
+      "type": "file",
+      "size": 25490
+    },
+    {
+      "path": "Thirdparty/g2o/g2o/core/sparse_block_matrix_ccs.h",
+      "type": "file",
+      "size": 10801
+    },
+    {
+      "path": "Thirdparty/g2o/g2o/core/sparse_block_matrix_diagonal.h",
+      "type": "file",
+      "size": 4184
+    },
+    {
+      "path": "Thirdparty/g2o/g2o/core/sparse_block_matrix_test.cpp",
+      "type": "file",
+      "size": 3192
+    },
+    {
+      "path": "Thirdparty/g2o/g2o/core/sparse_optimizer.cpp",
+      "type": "file",
+      "size": 20717
+    },
+    {
+      "path": "Thirdparty/g2o/g2o/core/sparse_optimizer.h",
+      "type": "file",
+      "size": 12602
+    },
+    {
+      "path": "Thirdparty/g2o/g2o/solvers/linear_solver_dense.h",
+      "type": "file",
+      "size": 3947
+    },
+    {
+      "path": "Thirdparty/g2o/g2o/solvers/linear_solver_eigen.h",
+      "type": "file",
+      "size": 9083
+    },
+    {
+      "path": "Thirdparty/g2o/g2o/stuff/color_macros.h",
+      "type": "file",
+      "size": 2572
+    },
+    {
+      "path": "Thirdparty/g2o/g2o/stuff/macros.h",
+      "type": "file",
+      "size": 4360
+    },
+    {
+      "path": "Thirdparty/g2o/g2o/stuff/misc.h",
+      "type": "file",
+      "size": 4207
+    },
+    {
+      "path": "Thirdparty/g2o/g2o/stuff/os_specific.c",
+      "type": "file",
+      "size": 2043
+    },
+    {
+      "path": "Thirdparty/g2o/g2o/stuff/os_specific.h",
+      "type": "file",
+      "size": 1882
+    },
+    {
+      "path": "Thirdparty/g2o/g2o/stuff/property.cpp",
+      "type": "file",
+      "size": 3410
+    },
+    {
+      "path": "Thirdparty/g2o/g2o/stuff/property.h",
+      "type": "file",
+      "size": 5023
+    },
+    {
+      "path": "Thirdparty/g2o/g2o/stuff/string_tools.cpp",
+      "type": "file",
+      "size": 5037
+    },
+    {
+      "path": "Thirdparty/g2o/g2o/stuff/string_tools.h",
+      "type": "file",
+      "size": 4767
+    },
+    {
+      "path": "Thirdparty/g2o/g2o/stuff/timeutil.cpp",
+      "type": "file",
+      "size": 3722
+    },
+    {
+      "path": "Thirdparty/g2o/g2o/stuff/timeutil.h",
+      "type": "file",
+      "size": 3690
+    },
+    {
+      "path": "Thirdparty/g2o/g2o/types/se3_ops.h",
+      "type": "file",
+      "size": 1851
+    },
+    {
+      "path": "Thirdparty/g2o/g2o/types/se3_ops.hpp",
+      "type": "file",
+      "size": 2334
+    },
+    {
+      "path": "Thirdparty/g2o/g2o/types/se3mat.cpp",
+      "type": "file",
+      "size": 845
+    },
+    {
+      "path": "Thirdparty/g2o/g2o/types/se3mat.h",
+      "type": "file",
+      "size": 923
+    },
+    {
+      "path": "Thirdparty/g2o/g2o/types/se3quat.h",
+      "type": "file",
+      "size": 8167
+    },
+    {
+      "path": "Thirdparty/g2o/g2o/types/sim3.h",
+      "type": "file",
+      "size": 6948
+    },
+    {
+      "path": "Thirdparty/g2o/g2o/types/types_sba.cpp",
+      "type": "file",
+      "size": 1905
+    },
+    {
+      "path": "Thirdparty/g2o/g2o/types/types_sba.h",
+      "type": "file",
+      "size": 2045
+    },
+    {
+      "path": "Thirdparty/g2o/g2o/types/types_seven_dof_expmap.cpp",
+      "type": "file",
+      "size": 6226
+    },
+    {
+      "path": "Thirdparty/g2o/g2o/types/types_seven_dof_expmap.h",
+      "type": "file",
+      "size": 5635
+    },
+    {
+      "path": "Thirdparty/g2o/g2o/types/types_six_dof_expmap.cpp",
+      "type": "file",
+      "size": 11076
+    },
+    {
+      "path": "Thirdparty/g2o/g2o/types/types_six_dof_expmap.h",
+      "type": "file",
+      "size": 7243
+    },
+    {
+      "path": "Examples_old/ROS/ORB_SLAM3/src/AR/ViewerAR.cc",
+      "type": "file",
+      "size": 17975
+    },
+    {
+      "path": "Examples_old/ROS/ORB_SLAM3/src/AR/ViewerAR.h",
+      "type": "file",
+      "size": 3563
+    },
+    {
+      "path": "Examples_old/ROS/ORB_SLAM3/src/AR/ros_mono_ar.cc",
+      "type": "file",
+      "size": 4705
+    }
+  ],
+  "languages": {
+    "C++": {
+      "bytes": 1524305,
+      "percentage": 97.96
+    },
+    "Python": {
+      "bytes": 15933,
+      "percentage": 1.02
+    },
+    "CMake": {
+      "bytes": 15127,
+      "percentage": 0.97
+    },
+    "Shell": {
+      "bytes": 734,
+      "percentage": 0.05
+    }
+  },
+  "signatures": [],
+  "test_examples": [],
+  "issues": [],
+  "changelog": "",
+  "releases": [
+    {
+      "tag_name": "v1.0-release",
+      "name": "v1.0-release",
+      "body": "-OpenCV static matrices changed to Eigen matrices. The average code speed-up is 16% in tracking and 19% in mapping, w.r.t. times reported in the ORB-SLAM3 paper.\r\n-New calibration file format, see file Calibration_Tutorial. Added options for stereo rectification and image resizing.\r\n-Added load/save map functionalities.\r\n-Added examples of live SLAM using Intel Realsense cameras.\r\n-Fixed several bugs.",
+      "draft": false,
+      "prerelease": false,
+      "created_at": "2021-12-22T10:56:08+00:00",
+      "published_at": "2021-12-22T13:15:16+00:00",
+      "url": "https://github.com/UZ-SLAMLab/ORB_SLAM3/releases/tag/v1.0-release",
+      "tarball_url": "https://api.github.com/repos/UZ-SLAMLab/ORB_SLAM3/tarball/v1.0-release",
+      "zipball_url": "https://api.github.com/repos/UZ-SLAMLab/ORB_SLAM3/zipball/v1.0-release"
+    },
+    {
+      "tag_name": "v0.4-beta",
+      "name": "v0.4-beta",
+      "body": "V0.4: Beta version\r\n\r\nThis version of the code used to obtain the experimental results reported in the \r\nTRO paper [1].\r\n\r\n- Changed OpenCV dynamic matrices to OpenCV static matrices to speed up the code.\r\n\r\n- Capability to measure running time of the system threads.\r\n\r\n- Compatibility with OpenCV 4.0 (Requires at least OpenCV 3.0)\r\n\r\n- Fixed minor bugs.\r\n\r\n> [1] C. Campos, R. Elvira, J. J. G. Rodríguez, J. M. M. Montiel and J. D. Tardós, \"ORB-SLAM3: An Accurate Open-Source Library for Visual, Visual–Inertial, and Multimap SLAM,\" in IEEE Transactions on Robotics, doi: 10.1109/TRO.2021.3075644. [PDF](https://arxiv.org/pdf/1610.05949.pdf)\r\n",
+      "draft": false,
+      "prerelease": true,
+      "created_at": "2021-04-21T14:24:03+00:00",
+      "published_at": "2021-09-29T08:44:06+00:00",
+      "url": "https://github.com/UZ-SLAMLab/ORB_SLAM3/releases/tag/v0.4-beta",
+      "tarball_url": "https://api.github.com/repos/UZ-SLAMLab/ORB_SLAM3/tarball/v0.4-beta",
+      "zipball_url": "https://api.github.com/repos/UZ-SLAMLab/ORB_SLAM3/zipball/v0.4-beta"
+    },
+    {
+      "tag_name": "v0.3-beta",
+      "name": "v0.3-beta",
+      "body": "- RGB-D compatibility, the RGB-D examples had been adapted to the new version.\r\n\r\n- Kitti and TUM dataset compatibility, these examples had been adapted to the new version.\r\n\r\n- ROS compatibility, It had been updated the old references in the code to work with this version.\r\n\r\n- Config file parser, the YAML file contains the session configuration, a wrong parametrization may break the execution without any information to solve it. This version parses the file to read all the fields and give a proper answer if one of the fields have been wrong deffined or don't exist.\r\n\r\n- Fixed minor bugs.",
+      "draft": false,
+      "prerelease": true,
+      "created_at": "2020-09-07T08:42:45+00:00",
+      "published_at": "2020-09-07T08:46:10+00:00",
+      "url": "https://github.com/UZ-SLAMLab/ORB_SLAM3/releases/tag/v0.3-beta",
+      "tarball_url": "https://api.github.com/repos/UZ-SLAMLab/ORB_SLAM3/tarball/v0.3-beta",
+      "zipball_url": "https://api.github.com/repos/UZ-SLAMLab/ORB_SLAM3/zipball/v0.3-beta"
+    },
+    {
+      "tag_name": "v0.2-beta",
+      "name": "v0.2-beta",
+      "body": "",
+      "draft": false,
+      "prerelease": true,
+      "created_at": "2020-07-24T09:16:32+00:00",
+      "published_at": "2020-07-30T08:53:30+00:00",
+      "url": "https://github.com/UZ-SLAMLab/ORB_SLAM3/releases/tag/v0.2-beta",
+      "tarball_url": "https://api.github.com/repos/UZ-SLAMLab/ORB_SLAM3/tarball/v0.2-beta",
+      "zipball_url": "https://api.github.com/repos/UZ-SLAMLab/ORB_SLAM3/zipball/v0.2-beta"
+    }
+  ]
+}
