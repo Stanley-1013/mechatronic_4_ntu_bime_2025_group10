@@ -126,35 +126,9 @@ void setup() {
 void loop() {
     unsigned long currentTime = millis();
 
-    // ========== 1. 接收並處理馬達指令 ==========
-    // 防止緩衝區溢出：只處理最多 3 個封包，避免長時間阻塞
-    int packetsProcessed = 0;
-    while (Serial.available() && packetsProcessed < 3) {
-        uint8_t byte = Serial.read();
-
-        // 尋找 Header
-        if (rxIndex == 0) {
-            if (byte == MOTOR_HEADER) {
-                rxBuffer[rxIndex++] = byte;
-            }
-            // 若緩衝區太多資料，清空舊資料（避免處理過時的指令）
-            else if (Serial.available() > 40) {
-                while (Serial.available() > 8) {
-                    Serial.read();  // 丟棄過時資料
-                }
-            }
-        }
-        else {
-            rxBuffer[rxIndex++] = byte;
-
-            // 收齊 8 bytes
-            if (rxIndex >= PACKET_SIZE) {
-                processMotorCommand();
-                rxIndex = 0;
-                packetsProcessed++;
-            }
-        }
-    }
+    // ========== 1. 最優先：接收並處理馬達指令 ==========
+    // 清空所有待處理的指令，只保留最新的
+    processAllMotorCommands();
 
     // ========== 2. 逾時保護 ==========
     if (currentTime - lastCommandTime > COMMAND_TIMEOUT) {
@@ -170,65 +144,109 @@ void loop() {
     }
     #endif
 
-    // ========== 4. 更新感測器資料並發送 (僅在啟用時) ==========
-    // 只有當 Pi 啟用超聲波時才讀取，避免遙控模式阻塞
-    if (ultrasonicEnabled && currentTime - lastSensorTime >= 50) {
-        // 使用交替讀取減少阻塞：每次只讀一個感測器，最多阻塞 15ms
+    // ========== 4. 更新感測器資料並發送 ==========
+    // 降低頻率到 100ms，減少 TX buffer 壓力
+    if (ultrasonicEnabled && currentTime - lastSensorTime >= SENSOR_UPDATE_INTERVAL) {
         updateSensors();
-        sendSensorData();
+
+        // 只有 TX buffer 有空間才發送，避免阻塞
+        if (Serial.availableForWrite() >= PACKET_SIZE_SENSOR) {
+            sendSensorData();
+        }
         lastSensorTime = currentTime;
     }
 }
 
-// ==================== 處理馬達指令 ====================
-void processMotorCommand() {
-    int16_t leftPwm, rightPwm;
-    bool vacuumState;
-    bool newUltrasonicEnabled;
+// ==================== 處理所有馬達指令 ====================
+// 清空 RX buffer，只執行最新的有效指令
+// 新增：同步恢復機制 - 連續解析失敗時自動重新同步
+static uint8_t parseFailCount = 0;  // 連續解析失敗計數
+#define MAX_PARSE_FAILS 3           // 連續失敗超過此數就強制重新同步
 
-    // 解析封包 (包含 ultrasonic_enable flag)
-    if (parseMotorPacket(rxBuffer, leftPwm, rightPwm, vacuumState, newUltrasonicEnabled)) {
-        // 封包有效
-        motor.setLeftMotor(leftPwm);
-        motor.setRightMotor(rightPwm);
-        vacuum.setState(vacuumState);
-        ultrasonicEnabled = newUltrasonicEnabled;  // 更新超聲波啟用狀態
+void processAllMotorCommands() {
+    int16_t latestLeftPwm = 0;
+    int16_t latestRightPwm = 0;
+    bool latestVacuum = false;
+    bool latestUltrasonic = false;
+    bool hasValidCommand = false;
 
-        lastCommandTime = millis();  // 更新最後指令時間
+    // 讀取所有可用資料，只保留最新的有效指令
+    while (Serial.available() > 0) {
+        uint8_t byte = Serial.read();
+
+        if (rxIndex == 0) {
+            if (byte == MOTOR_HEADER) {
+                rxBuffer[rxIndex++] = byte;
+            }
+            // 非 Header，跳過（這是正常的同步行為）
+        }
+        else {
+            rxBuffer[rxIndex++] = byte;
+
+            if (rxIndex >= PACKET_SIZE) {
+                // 嘗試解析
+                int16_t leftPwm, rightPwm;
+                bool vacuum, ultrasonic;
+
+                if (parseMotorPacket(rxBuffer, leftPwm, rightPwm, vacuum, ultrasonic)) {
+                    // 有效指令，覆蓋之前的
+                    latestLeftPwm = leftPwm;
+                    latestRightPwm = rightPwm;
+                    latestVacuum = vacuum;
+                    latestUltrasonic = ultrasonic;
+                    hasValidCommand = true;
+                    parseFailCount = 0;  // 重置失敗計數
+                    rxIndex = 0;         // 準備接收下一個封包
+                }
+                else {
+                    // 解析失敗
+                    parseFailCount++;
+
+                    if (parseFailCount >= MAX_PARSE_FAILS) {
+                        // 連續失敗太多次，可能是同步丟失
+                        // 掃描 buffer 中剩餘資料尋找下一個 Header
+                        bool foundHeader = false;
+                        for (int i = 1; i < PACKET_SIZE; i++) {
+                            if (rxBuffer[i] == MOTOR_HEADER) {
+                                // 找到 Header，將其移到 buffer 開頭繼續收集
+                                rxBuffer[0] = MOTOR_HEADER;
+                                rxIndex = 1;
+                                parseFailCount = 0;
+                                foundHeader = true;
+                                break;
+                            }
+                        }
+                        if (!foundHeader) {
+                            // 沒找到 Header，完全重置
+                            rxIndex = 0;
+                            parseFailCount = 0;
+                        }
+                        // 找到 Header 時 rxIndex=1，繼續收集後續 bytes
+                        continue;
+                    }
+                    rxIndex = 0;
+                }
+            }
+        }
+    }
+
+    // 執行最新的指令
+    if (hasValidCommand) {
+        motor.setLeftMotor(latestLeftPwm);
+        motor.setRightMotor(latestRightPwm);
+        vacuum.setState(latestVacuum);
+        ultrasonicEnabled = latestUltrasonic;
+        lastCommandTime = millis();
 
         #ifdef DEBUG_SHOW_COMMANDS
         DEBUG_PRINT(F("[CMD] L:"));
-        DEBUG_PRINT(leftPwm);
+        DEBUG_PRINT(latestLeftPwm);
         DEBUG_PRINT(F(" R:"));
-        DEBUG_PRINT(rightPwm);
-        DEBUG_PRINT(F(" V:"));
-        DEBUG_PRINT(vacuumState ? F("ON") : F("OFF"));
-        DEBUG_PRINT(F(" US:"));
-        DEBUG_PRINTLN(ultrasonicEnabled ? F("ON") : F("OFF"));
+        DEBUG_PRINTLN(latestRightPwm);
         #endif
-
-        #ifdef DEBUG_VERBOSE
-        // 顯示原始封包（詳細模式）
-        DEBUG_PRINT(F("  Raw: "));
-        for (int i = 0; i < 8; i++) {
-            if (rxBuffer[i] < 0x10) DEBUG_PRINT(F("0"));
-            DEBUG_PRINT(rxBuffer[i], HEX);
-            DEBUG_PRINT(F(" "));
-        }
-        DEBUG_PRINTLN();
-        #endif
-    }
-    else {
-        // 封包無效 - 顯示錯誤封包內容
-        DEBUG_PRINT(F("[ERR] Invalid packet: "));
-        for (int i = 0; i < 8; i++) {
-            if (rxBuffer[i] < 0x10) DEBUG_PRINT(F("0"));
-            DEBUG_PRINT(rxBuffer[i], HEX);
-            DEBUG_PRINT(F(" "));
-        }
-        DEBUG_PRINTLN();
     }
 }
+
 
 // ==================== 更新感測器資料 ====================
 // 交替讀取：每次 loop 只讀一個感測器，減少阻塞
