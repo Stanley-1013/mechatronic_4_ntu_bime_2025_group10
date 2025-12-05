@@ -1,0 +1,16 @@
+# E2E Test Dependencies for Mechtronic 4 Autonomous System
+# Python 3.8+
+
+# Test Framework
+pytest>=7.4.0
+pytest-cov>=4.1.0
+pytest-mock>=3.11.0
+pytest-timeout>=2.1.0
+
+# Scientific Computing
+numpy>=1.21.0
+matplotlib>=3.5.0
+
+# Additional Testing Utilities
+pytest-xdist>=3.3.0  # Parallel test execution
+pytest-html>=3.2.0  # HTML test reports

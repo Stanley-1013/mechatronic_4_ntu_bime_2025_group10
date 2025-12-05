@@ -1,0 +1,9 @@
+# Visualization Module Requirements
+
+# Core visualization
+matplotlib>=3.5.0
+numpy>=1.21.0
+
+# Optional: for interactive plots (future enhancement)
+# plotly>=5.0.0
+# ipython>=7.0.0
