@@ -26,13 +26,17 @@ CMD_QUERY_STATE = 0x05  # 查詢當前狀態 (無 payload)
 # ============================================================================
 # Arduino → Pi 狀態回報
 # ============================================================================
+# v2.0 簡化為連續控制，只回報 IDLE/RUNNING/DONE
 STATE_IDLE = 0x00       # 空閒/待命
-STATE_FIND_WALL = 0x01  # 搜尋牆面中
-STATE_FORWARD = 0x02    # 前進並沿牆
-STATE_BACKUP = 0x03     # 後退
-STATE_TURN_LEFT = 0x04  # 左轉
+STATE_RUNNING = 0x02    # 執行中 (連續沿牆控制)
 STATE_DONE = 0x05       # 任務完成
 STATE_ERROR = 0xFF      # 錯誤狀態
+
+# 舊狀態定義 (保留供相容)
+STATE_FIND_WALL = 0x01  # (已棄用)
+STATE_FORWARD = 0x02    # (已棄用，等同 STATE_RUNNING)
+STATE_BACKUP = 0x03     # (已棄用)
+STATE_TURN_LEFT = 0x04  # (已棄用)
 
 # ============================================================================
 # 封包格式常數
@@ -98,12 +102,13 @@ VACUUM_ON = 0x01
 # ============================================================================
 STATE_NAMES = {
     STATE_IDLE: "IDLE",
-    STATE_FIND_WALL: "FIND_WALL",
-    STATE_FORWARD: "FORWARD",
-    STATE_BACKUP: "BACKUP",
-    STATE_TURN_LEFT: "TURN_LEFT",
+    STATE_RUNNING: "RUNNING",
     STATE_DONE: "DONE",
     STATE_ERROR: "ERROR",
+    # 舊狀態 (相容)
+    STATE_FIND_WALL: "FIND_WALL",
+    STATE_BACKUP: "BACKUP",
+    STATE_TURN_LEFT: "TURN_LEFT",
 }
 
 CMD_NAMES = {

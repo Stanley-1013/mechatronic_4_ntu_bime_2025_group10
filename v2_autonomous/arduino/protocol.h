@@ -18,13 +18,17 @@
 #define CMD_QUERY_STATE 0x05  // 查詢當前狀態 (無 payload)
 
 // --- Arduino → Pi 狀態回報 ---
+// 注意: v2.0 簡化為連續控制，只回報 IDLE/RUNNING/DONE
 #define STATE_IDLE      0x00  // 空閒/待命
-#define STATE_FIND_WALL 0x01  // 搜尋牆面中
-#define STATE_FORWARD   0x02  // 前進並沿牆
-#define STATE_BACKUP    0x03  // 後退
-#define STATE_TURN_LEFT 0x04  // 左轉
+#define STATE_RUNNING   0x02  // 執行中 (連續沿牆控制)
 #define STATE_DONE      0x05  // 任務完成
 #define STATE_ERROR     0xFF  // 錯誤狀態
+
+// 舊狀態定義 (保留供相容，但不再使用)
+// #define STATE_FIND_WALL 0x01
+// #define STATE_FORWARD   0x02
+// #define STATE_BACKUP    0x03
+// #define STATE_TURN_LEFT 0x04
 
 // --- 封包格式常數 ---
 

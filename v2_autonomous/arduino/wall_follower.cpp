@@ -104,7 +104,21 @@ void WallFollower::reset() {
 }
 
 void WallFollower::triggerAvoidRed() {
-    // 預留介面
+    /**
+     * 觸發紅色迴避
+     *
+     * 策略: 強制進入角落鎖定模式，執行左轉離開紅色區域
+     * - 不後退，直接左轉
+     * - 轉 60° 後解鎖 (比正常角落少，避免偏離太多)
+     */
+    if (!_running || _cornerLocked) {
+        return;  // 未執行或已在角落處理中，忽略
+    }
+
+    _cornerLocked = true;
+    _backupStartTime = millis() - BACKUP_DURATION_MS;  // 跳過後退階段
+    _backupYaw = 0;  // 會在下次 update 時用當前 yaw 更新
+    // 注意: 紅色迴避不增加 cornerCount
 }
 
 void WallFollower::update(int frontDist, int rightDist, float yaw, bool imuValid) {
@@ -132,6 +146,11 @@ void WallFollower::update(int frontDist, int rightDist, float yaw, bool imuValid
         }
 
         // 2b. 左轉階段 (IMU 角度控制 + 超時保護)
+        // 如果 _backupYaw 為 0 (紅色迴避觸發)，用當前 yaw 初始化
+        if (_backupYaw == 0) {
+            _backupYaw = yaw;
+        }
+
         unsigned long turnElapsed = elapsed - BACKUP_DURATION_MS;
         float turned = _angleDiff(yaw, _backupYaw);
 

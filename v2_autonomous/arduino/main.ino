@@ -54,6 +54,9 @@ int rightDist = 999;
 float yaw = 0.0;
 bool imuValid = false;
 
+// 交替讀取超聲波 (避免阻塞)
+bool readFrontNext = true;
+
 // ==================== 指令回調函數 ====================
 /**
  * 處理來自 Pi 的指令回調
@@ -64,7 +67,8 @@ void onCommandReceived(uint8_t cmd, uint8_t payloadLen, uint8_t* payload) {
             // 啟動自主沿牆控制
             systemRunning = true;
             wallFollower.start();
-            Serial.println(F("[CMD] START - Wall follower activated"));
+            vacuum.setState(true);  // 自走模式吸塵器常開
+            Serial.println(F("[CMD] START - Wall follower activated, vacuum ON"));
             break;
 
         case CMD_STOP:
@@ -172,9 +176,13 @@ void loop() {
     // 1. 處理來自 Pi 的指令
     serialHandler.process();
 
-    // 2. 更新感測器讀值
-    frontDist = usFront.getDistance();
-    rightDist = usRight.getDistance();
+    // 2. 更新感測器讀值 (交替讀取，避免阻塞)
+    if (readFrontNext) {
+        frontDist = usFront.getDistance();
+    } else {
+        rightDist = usRight.getDistance();
+    }
+    readFrontNext = !readFrontNext;
 
     yaw = 0;
     bool currentImuValid = false;

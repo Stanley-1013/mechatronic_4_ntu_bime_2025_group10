@@ -38,7 +38,7 @@
 #define PIN_SERIAL_TX 2  // 發送 (連接 Pi RXD GPIO15)
 
 // ==================== 通訊參數 ====================
-#define SERIAL_BAUDRATE 57600  // 與 Pi 的鮑率（必須與 Python 一致）
+#define SERIAL_BAUDRATE 115200  // 與 Pi 的鮑率（必須與 Python 一致）
 #define SENSOR_UPDATE_INTERVAL 100  // ms (感測器更新頻率 = 10Hz)
 #define COMMAND_TIMEOUT 200         // ms (指令逾時 - 超過此時間未收到指令則停止馬達)
 
