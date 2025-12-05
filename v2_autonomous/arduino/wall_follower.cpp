@@ -41,7 +41,8 @@ static const int MAX_PWM = 255;
 static const int MIN_EFFECTIVE_PWM = 60;            // 死區
 
 // 角度控制常數
-static const float TURN_TARGET_ANGLE = 85.0;        // 目標轉彎角度 (度)
+static const float CORNER_TURN_ANGLE = 85.0;        // 角落轉彎角度 (度)
+static const float RED_AVOID_ANGLE = 45.0;          // 紅色迴避角度 (度) - 小角度斜向閃避
 
 // 感測器常數
 static const int SENSOR_INVALID = 0;
@@ -54,6 +55,7 @@ WallFollower::WallFollower()
       _cornerCount(0),
       _vacuumOn(true),
       _cornerLocked(false),
+      _isRedAvoid(false),
       _backupStartTime(0),
       _backupYaw(0),
       _historyIndex(0),
@@ -72,6 +74,7 @@ void WallFollower::start() {
     _running = true;
     _cornerCount = 0;
     _cornerLocked = false;
+    _isRedAvoid = false;
     _backupStartTime = 0;
     _backupYaw = 0;
 
@@ -92,6 +95,7 @@ void WallFollower::reset() {
     _running = false;
     _cornerCount = 0;
     _cornerLocked = false;
+    _isRedAvoid = false;
     _backupStartTime = 0;
     _backupYaw = 0;
     _leftPWM = 0;
@@ -107,15 +111,17 @@ void WallFollower::triggerAvoidRed() {
     /**
      * 觸發紅色迴避
      *
-     * 策略: 強制進入角落鎖定模式，執行左轉離開紅色區域
+     * 策略: 小角度左轉閃避，繼續吸塵
      * - 不後退，直接左轉
-     * - 轉 60° 後解鎖 (比正常角落少，避免偏離太多)
+     * - 只轉 45° (比角落的 85° 小)
+     * - 轉完後會自動尋牆回到沿牆狀態
      */
     if (!_running || _cornerLocked) {
         return;  // 未執行或已在角落處理中，忽略
     }
 
     _cornerLocked = true;
+    _isRedAvoid = true;  // 標記為紅色迴避，使用較小角度
     _backupStartTime = millis() - BACKUP_DURATION_MS;  // 跳過後退階段
     _backupYaw = 0;  // 會在下次 update 時用當前 yaw 更新
     // 注意: 紅色迴避不增加 cornerCount
@@ -154,14 +160,18 @@ void WallFollower::update(int frontDist, int rightDist, float yaw, bool imuValid
         unsigned long turnElapsed = elapsed - BACKUP_DURATION_MS;
         float turned = _angleDiff(yaw, _backupYaw);
 
+        // 根據類型選擇目標角度: 紅色迴避 45°, 角落 85°
+        float targetAngle = _isRedAvoid ? RED_AVOID_ANGLE : CORNER_TURN_ANGLE;
+
         // 繼續轉彎條件: 還沒轉夠 AND 未超時
-        if (turned < TURN_TARGET_ANGLE && turnElapsed < TURN_TIMEOUT_MS) {
+        if (turned < targetAngle && turnElapsed < TURN_TIMEOUT_MS) {
             _setMotorOutput(0, TURN_ANGULAR_SPEED);  // 正值 = 左轉
             return;
         }
 
-        // 2c. 角落處理完成，解鎖
+        // 2c. 處理完成，解鎖
         _cornerLocked = false;
+        _isRedAvoid = false;  // 重置紅色迴避標記
         _backupStartTime = 0;
         _backupYaw = 0;
     }
@@ -170,6 +180,7 @@ void WallFollower::update(int frontDist, int rightDist, float yaw, bool imuValid
     if (front < FRONT_STOP_DISTANCE && right < CORNER_RIGHT_DISTANCE) {
         // 進入角落，鎖定並開始後退
         _cornerLocked = true;
+        _isRedAvoid = false;  // 角落用 85° 轉彎
         _backupStartTime = currentTime;
         _backupYaw = yaw;
         _cornerCount++;

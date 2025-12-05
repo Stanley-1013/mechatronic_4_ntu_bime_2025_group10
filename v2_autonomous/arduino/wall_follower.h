@@ -101,6 +101,7 @@ private:
 
     // ==================== 角落鎖定 ====================
     bool _cornerLocked;            // 角落鎖定中
+    bool _isRedAvoid;              // 是否為紅色迴避 (用較小角度)
     unsigned long _backupStartTime; // 後退開始時間 (ms)
     float _backupYaw;              // 後退開始時的 yaw 角度
 
