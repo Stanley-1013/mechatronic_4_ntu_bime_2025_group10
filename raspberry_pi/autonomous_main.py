@@ -27,13 +27,12 @@ from red_detector import RedDetector
 class RobotState(Enum):
     """機器人狀態"""
     INIT = 0              # 初始化
-    FOLLOW_WALL = 1       # 沿右牆前進
-    CORNER_SWEEP = 2      # 角落掃描
-    TURN_LEFT = 3         # 左轉90度
-    AVOID_RED = 4         # 紅圓迴避
-    RETURN_TO_WALL = 5    # 找回右牆
-    EXIT = 6              # 返回出口
-    DONE = 7              # 完成
+    FOLLOW_WALL = 1       # 沿右牆前進 (含角落處理)
+    TURN_LEFT = 2         # 左轉90度 (由 wall_follower 處理)
+    AVOID_RED = 3         # 紅圓迴避
+    RETURN_TO_WALL = 4    # 找回右牆
+    EXIT = 5              # 返回出口
+    DONE = 6              # 完成
 
 
 class AutonomousController:
@@ -189,35 +188,30 @@ class AutonomousController:
         if self.state == RobotState.FOLLOW_WALL:
             # 偵測到紅色且尚未到角落 → 提早左轉離開，避免靠近紅色紙屑
             if self.red_zone_ahead and self.wall_follower.get_state() == WallFollower.STATE_FORWARD:
-                # 檢查是否已經很靠近前方（快到角落了）
                 if front_dist < 60:  # 60cm 內提早轉彎
                     print(f"\n[{self._elapsed_str()}] 紅色區域前方 {front_dist}cm - 提早左轉避開")
                     self.wall_follower.trigger_turn_left(current_time, yaw if imu_valid else None)
                     self.corner_count += 1
                     self.red_zone_ahead = False
                     self.last_turn_time = current_time
-                    return VehicleCommand(0, -0.7, self.vacuum_on)  # 左轉
+                    return VehicleCommand(0, -0.7, self.vacuum_on)
 
             # 沿牆控制 (傳入 IMU 資料)
             cmd = self.wall_follower.update(front_dist, right_dist, current_time, yaw, imu_valid)
 
-            # 檢查是否到達角落 (沿牆控制器進入轉彎狀態)
-            if self.wall_follower.get_state() == WallFollower.STATE_TURN_LEFT:
+            # 檢查是否進入角落處理 (後退或左轉)
+            wf_state = self.wall_follower.get_state()
+            if wf_state == WallFollower.STATE_BACKUP:
+                # 剛進入角落
                 self.corner_count += 1
                 print(f"\n[{self._elapsed_str()}] 到達角落 #{self.corner_count}")
-
-                # 判斷是否為紅色區域角落
                 if self.red_zone_ahead:
-                    # 紅色區域：跳過角落掃描，直接轉彎離開
-                    print(f"[{self._elapsed_str()}] 紅色區域角落 - 跳過掃描，直接轉彎")
-                    self.red_zone_ahead = False  # 重置標記
-                    self.last_turn_time = current_time
-                    # 保持 STATE_TURN_LEFT，不觸發 SWEEP
-                else:
-                    # 正常角落：執行角落掃描確保吸到紙屑
-                    print(f"[{self._elapsed_str()}] 正常角落 - 執行角落掃描")
-                    self.wall_follower.trigger_sweep(current_time)
-                    self.state = RobotState.CORNER_SWEEP
+                    print(f"[{self._elapsed_str()}] 紅色區域角落")
+                    self.red_zone_ahead = False
+
+            # 角落處理完成，回到 FORWARD
+            if wf_state == WallFollower.STATE_FORWARD and self.corner_count > 0:
+                self.last_turn_time = current_time
 
                 if self.corner_count >= 4:
                     print(f"[{self._elapsed_str()}] 繞完一圈，準備離開")
@@ -225,23 +219,11 @@ class AutonomousController:
 
             return cmd
 
-        elif self.state == RobotState.CORNER_SWEEP:
-            # 角落掃描中（由 wall_follower 內部狀態機處理）
-            cmd = self.wall_follower.update(front_dist, right_dist, current_time, yaw, imu_valid)
-
-            # 掃描完成後回到沿牆
-            if self.wall_follower.get_state() == WallFollower.STATE_FORWARD:
-                print(f"[{self._elapsed_str()}] 角落掃描完成，繼續沿牆")
-                self.state = RobotState.FOLLOW_WALL
-                self.last_turn_time = current_time  # 記錄轉彎完成時間
-
-            return cmd
-
         elif self.state == RobotState.AVOID_RED:
-            # 紅圓迴避：左轉（備用，主要靠角落判斷避開）
+            # 紅圓迴避：左轉（備用）
             self.wall_follower.trigger_find_wall(current_time)
             self.state = RobotState.RETURN_TO_WALL
-            return VehicleCommand(0, -0.6, self.vacuum_on)  # 左轉
+            return VehicleCommand(0, -0.6, self.vacuum_on)
 
         elif self.state == RobotState.RETURN_TO_WALL:
             # 找回右牆
@@ -249,7 +231,7 @@ class AutonomousController:
             if self.wall_follower.get_state() == WallFollower.STATE_FORWARD:
                 print(f"[{self._elapsed_str()}] 找回右牆，繼續沿牆")
                 self.state = RobotState.FOLLOW_WALL
-                self.last_turn_time = current_time  # 記錄轉彎完成時間
+                self.last_turn_time = current_time
             return cmd
 
         elif self.state == RobotState.EXIT:
@@ -257,13 +239,14 @@ class AutonomousController:
             cmd = self.wall_follower.update(front_dist, right_dist, current_time, yaw, imu_valid)
 
             # 檢測是否回到入口 (再次到達角落)
-            if self.wall_follower.get_state() == WallFollower.STATE_TURN_LEFT:
+            wf_state = self.wall_follower.get_state()
+            if wf_state == WallFollower.STATE_BACKUP:
                 self.corner_count += 1
-                self.last_turn_time = current_time  # 記錄轉彎時間
+                self.last_turn_time = current_time
                 if self.corner_count >= 5:
                     print(f"\n[{self._elapsed_str()}] 回到入口！任務完成")
                     self.state = RobotState.DONE
-                    self.vacuum_on = False  # 任務完成才關閉吸塵器
+                    self.vacuum_on = False
                     return VehicleCommand(0, 0, False)
 
             return cmd
@@ -286,7 +269,6 @@ class AutonomousController:
         state_names = {
             RobotState.INIT: "INIT",
             RobotState.FOLLOW_WALL: "WALL",
-            RobotState.CORNER_SWEEP: "SWEEP",
             RobotState.TURN_LEFT: "TURN",
             RobotState.AVOID_RED: "AVOID",
             RobotState.RETURN_TO_WALL: "FIND",

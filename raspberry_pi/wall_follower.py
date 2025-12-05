@@ -1,15 +1,15 @@
 #!/usr/bin/env python3
 """
 wall_follower.py - 沿右牆控制器
-版本: 2.0 (新增 IMU 角度控制)
+版本: 3.0 (簡化角落處理)
 日期: 2025-11-29
 
 實作沿右牆行駛演算法，使用前方+右側超聲波感測器。
-參考: FINAL_AUTONOMOUS_PLAN.md - 沿右牆策略
 
-v2.0 變更:
-- 新增 IMU 角度控制轉彎 (取代時間計時)
-- 新增直線行駛航向鎖定
+v3.0 變更:
+- 簡化角落處理：到角落 -> 停止 -> 後退左轉
+- 移除複雜的角落掃描動作
+- 新增後退左轉狀態
 
 場地規格:
 - 紙屑距牆 15cm
@@ -30,20 +30,21 @@ class WallFollower:
     RIGHT_DISTANCE_TOLERANCE = 5    # 右側距離容許誤差 (±5cm)
 
     # 前方偵測參數
-    FRONT_STOP_DISTANCE = 20        # 前方停止距離 (cm) - 需要轉彎
+    FRONT_STOP_DISTANCE = 15        # 前方停止距離 (cm) - 到角落
     FRONT_SLOW_DISTANCE = 40        # 前方減速距離 (cm)
 
     # 速度參數 (normalized: -1.0 ~ +1.0)
     BASE_LINEAR_SPEED = 0.6         # 基礎線性速度
     SLOW_LINEAR_SPEED = 0.35        # 減速時線性速度
+    BACKUP_SPEED = -0.4             # 後退速度
     TURN_ANGULAR_SPEED = 0.7        # 轉彎角速度
     WALL_FOLLOW_KP = 0.025          # 沿牆 P 控制增益
 
     # 狀態機
     STATE_FORWARD = "forward"       # 直行沿牆
-    STATE_TURN_LEFT = "turn_left"   # 左轉（遇前牆）
-    STATE_SWEEP = "sweep"           # 角落掃描動作
-    STATE_FIND_WALL = "find_wall"   # 尋找右牆
+    STATE_BACKUP = "backup"         # 後退 (角落時)
+    STATE_TURN_LEFT = "turn_left"   # 左轉（後退完或只有前牆）
+    STATE_FIND_WALL = "find_wall"   # 尋找右牆 (右前方移動)
 
     def __init__(self, use_imu=True):
         """
@@ -59,22 +60,21 @@ class WallFollower:
         self.use_imu = use_imu
         self.imu = IMUProcessor() if use_imu else None
 
+        # 後退計時器 (角落時小幅後退)
+        self.backup_start_time = None
+        self.backup_duration = 0.3  # 後退持續時間 (秒) - 只退一點點
+
         # 轉彎計時器 (IMU 不可用時的備援)
         self.turn_start_time = None
-        self.turn_duration = 0.7  # 轉彎持續時間 (秒) - 需實測調校
-
-        # 角落掃描
-        self.sweep_start_time = None
-        self.sweep_phase = 0
-        self.sweep_duration = 5.0  # 角落掃描時間 (秒) - 縮短以節省比賽時間
+        self.turn_duration = 0.8  # 原地左轉持續時間 (秒)
 
         # 找牆計時
         self.find_wall_start_time = None
         self.find_wall_timeout = 3.0  # 找牆超時 (秒)
 
-        print("WallFollower 初始化完成")
+        print("WallFollower v3.0 初始化完成")
         print(f"   目標右側距離: {self.TARGET_RIGHT_DISTANCE} cm")
-        print(f"   前方轉彎距離: {self.FRONT_STOP_DISTANCE} cm")
+        print(f"   前方停止距離: {self.FRONT_STOP_DISTANCE} cm")
         print(f"   IMU 角度控制: {'啟用' if use_imu else '停用'}")
 
     def update(self, front_distance: int, right_distance: int,
@@ -86,8 +86,8 @@ class WallFollower:
             front_distance: 前方距離 (cm), 999=無效
             right_distance: 右側距離 (cm), 999=無效
             current_time: 當前時間 (time.time())
-            yaw: 當前 Yaw 角度 (度) - v2.0 新增
-            imu_valid: IMU 資料是否有效 - v2.0 新增
+            yaw: 當前 Yaw 角度 (度)
+            imu_valid: IMU 資料是否有效
 
         Returns:
             VehicleCommand: 車輛控制指令
@@ -105,16 +105,14 @@ class WallFollower:
             return self._state_forward(front_distance, right_distance,
                                        front_valid, right_valid, current_time, yaw, imu_valid)
 
-        elif self.state == self.STATE_TURN_LEFT:
-            return self._state_turn_left(front_distance, front_valid,
-                                         current_time, yaw, imu_valid)
+        elif self.state == self.STATE_BACKUP:
+            return self._state_backup(current_time, yaw, imu_valid)
 
-        elif self.state == self.STATE_SWEEP:
-            return self._state_sweep(current_time)
+        elif self.state == self.STATE_TURN_LEFT:
+            return self._state_turn_left(current_time, yaw, imu_valid)
 
         elif self.state == self.STATE_FIND_WALL:
-            return self._state_find_wall(right_distance, right_valid,
-                                         current_time, yaw, imu_valid)
+            return self._state_find_wall(right_distance, right_valid, current_time)
 
         # 預設停止
         return VehicleCommand(0, 0, self.vacuum_on)
@@ -126,127 +124,122 @@ class WallFollower:
         直行沿牆狀態
 
         邏輯:
-        1. 前方 < 20cm -> 左轉 (使用 IMU 角度控制)
-        2. 前方 < 40cm -> 減速
-        3. 右側距離修正 (P控制)
-        4. 右側無效/太遠 -> 右偏找牆
+        1. 前方+右側都偵測到牆 (角落) -> 後退再左轉
+        2. 只有前方偵測到牆 -> 原地左轉
+        3. 前後左右都沒牆 -> 右前方找牆
+        4. 正常沿右牆行駛 (P 控制)
         """
         linear = self.BASE_LINEAR_SPEED
         angular = 0.0
 
-        # 1. 檢查前方是否需要轉彎
+        # 情況 1: 角落 - 前方有牆 + 右側有牆
         if front_valid and front_dist < self.FRONT_STOP_DISTANCE:
-            # 進入左轉狀態
-            self.state = self.STATE_TURN_LEFT
-            self.turn_start_time = current_time
-
-            # 使用 IMU 角度控制轉彎
-            if self.imu and imu_valid:
-                self.imu.start_turn(-90, yaw)  # 左轉 90 度
-                print(f"[WallFollower] 前方 {front_dist}cm < {self.FRONT_STOP_DISTANCE}cm -> 左轉 (IMU 角度控制)")
+            if right_valid and right_dist < 50:
+                # 角落：先後退一點點
+                self.state = self.STATE_BACKUP
+                self.backup_start_time = current_time
+                print(f"[WallFollower] 角落! 前方 {front_dist}cm, 右側 {right_dist}cm -> 後退")
+                return VehicleCommand(self.BACKUP_SPEED, 0, self.vacuum_on)
             else:
-                print(f"[WallFollower] 前方 {front_dist}cm < {self.FRONT_STOP_DISTANCE}cm -> 左轉 (時間控制)")
+                # 情況 2: 只有前方有牆，沒有右牆 -> 直接原地左轉
+                self.state = self.STATE_TURN_LEFT
+                self.turn_start_time = current_time
+                if self.imu and imu_valid:
+                    self.imu.start_turn(-90, yaw)
+                    print(f"[WallFollower] 前方有牆 {front_dist}cm -> 原地左轉 (IMU)")
+                else:
+                    print(f"[WallFollower] 前方有牆 {front_dist}cm -> 原地左轉 (時間)")
+                return VehicleCommand(0, -self.TURN_ANGULAR_SPEED, self.vacuum_on)
 
-            return VehicleCommand(0, -self.TURN_ANGULAR_SPEED, self.vacuum_on)
+        # 情況 3: 前後左右都沒牆 -> 右前方找牆 (入口在下方中間，往右走找右牆)
+        if (not front_valid or front_dist > 80) and (not right_valid or right_dist > 80):
+            self.state = self.STATE_FIND_WALL
+            self.find_wall_start_time = current_time
+            print("[WallFollower] 感測器都沒找到牆 -> 右前方尋牆")
+            # 右轉+前進: angular 負值讓左輪快、右輪慢 → 右轉
+            # left=0.75 (PWM 191), right=0.45 (PWM 115)
+            return VehicleCommand(0.6, -0.15, self.vacuum_on)
 
-        # 2. 前方減速
+        # 情況 4: 正常沿牆 - 前方減速
         if front_valid and front_dist < self.FRONT_SLOW_DISTANCE:
             linear = self.SLOW_LINEAR_SPEED
 
-        # 3. 沿右牆控制（P 控制器）
-        if right_valid and right_dist < 80:  # 只有右側有效且合理時才修正
+        # 沿右牆控制（P 控制器）
+        if right_valid and right_dist < 80:
             error = right_dist - self.TARGET_RIGHT_DISTANCE
-            # error > 0: 離牆太遠，需要右轉（angular > 0）
-            # error < 0: 離牆太近，需要左轉（angular < 0）
-            angular = error * self.WALL_FOLLOW_KP
-
-            # 限制角速度 (避免過度修正)
+            # error > 0: 離牆太遠，需要右轉 → angular 負值 (左快右慢)
+            # error < 0: 離牆太近，需要左轉 → angular 正值 (左慢右快)
+            # 所以 angular = -error * KP
+            angular = -error * self.WALL_FOLLOW_KP
             angular = max(-0.35, min(0.35, angular))
-
-        # 4. 如果右側沒有牆（距離太遠或無效），右偏尋找牆壁
-        elif not right_valid or right_dist > 80:
-            angular = 0.25  # 稍微右轉
-            linear = self.SLOW_LINEAR_SPEED  # 減速尋牆
 
         return VehicleCommand(linear, angular, self.vacuum_on)
 
-    def _state_turn_left(self, front_dist, front_valid, current_time,
-                         yaw=0.0, imu_valid=False):
+    def _state_backup(self, current_time, yaw=0.0, imu_valid=False):
         """
-        左轉狀態（原地左轉避開前牆）
+        後退狀態 (角落時小幅後退)
 
-        結束條件 (IMU 模式):
-        1. 達到目標角度 (±5° 容許誤差)
+        完成後進入原地左轉
+        """
+        elapsed = current_time - self.backup_start_time
 
-        結束條件 (時間模式 - 備援):
-        1. 轉彎時間到
-        2. 前方已清空 (且已轉一小段時間)
+        if elapsed > self.backup_duration:
+            # 後退完成，進入原地左轉
+            self.state = self.STATE_TURN_LEFT
+            self.turn_start_time = current_time
+            if self.imu and imu_valid:
+                self.imu.start_turn(-90, yaw)
+                print(f"[WallFollower] 後退完成 -> 原地左轉 (IMU: {yaw:.1f}°)")
+            else:
+                print("[WallFollower] 後退完成 -> 原地左轉 (時間)")
+            return VehicleCommand(0, -self.TURN_ANGULAR_SPEED, self.vacuum_on)
+
+        # 繼續後退
+        return VehicleCommand(self.BACKUP_SPEED, 0, self.vacuum_on)
+
+    def _state_turn_left(self, current_time, yaw=0.0, imu_valid=False):
+        """
+        原地左轉狀態
+
+        結束條件 (優先順序):
+        1. IMU 模式: 達到目標角度 (±5°)
+        2. 時間模式: 轉彎時間到 (IMU 不可用或未啟動時)
         """
         elapsed = current_time - self.turn_start_time
 
-        # === IMU 角度控制模式 ===
-        if self.imu and self.imu.is_turn_active() and imu_valid:
-            # 檢查是否達到目標角度
-            if self.imu.is_turn_complete(yaw):
-                self.state = self.STATE_FORWARD
-                print(f"[WallFollower] 左轉完成 (IMU: {yaw:.1f}°) -> 直行")
-                return VehicleCommand(self.BASE_LINEAR_SPEED, 0, self.vacuum_on)
+        # === 優先使用 IMU 角度控制 ===
+        if self.imu and self.imu.is_turn_active():
+            if imu_valid:
+                if self.imu.is_turn_complete(yaw):
+                    self.state = self.STATE_FORWARD
+                    print(f"[WallFollower] 左轉完成 (IMU: {yaw:.1f}°) -> 直行")
+                    return VehicleCommand(self.BASE_LINEAR_SPEED, 0, self.vacuum_on)
+                # IMU 有效，繼續轉
+                return VehicleCommand(0, -self.TURN_ANGULAR_SPEED, self.vacuum_on)
+            else:
+                # IMU 轉彎中但資料無效，等待資料恢復 (繼續轉)
+                # 同時用時間做備援
+                if elapsed > self.turn_duration * 1.5:  # 比正常時間長 50% 就強制結束
+                    self.imu.cancel_turn()
+                    self.state = self.STATE_FORWARD
+                    print(f"[WallFollower] 左轉超時 (IMU 資料無效) -> 直行")
+                    return VehicleCommand(self.BASE_LINEAR_SPEED, 0, self.vacuum_on)
+                return VehicleCommand(0, -self.TURN_ANGULAR_SPEED, self.vacuum_on)
 
-            # 繼續左轉
-            return VehicleCommand(0, -self.TURN_ANGULAR_SPEED, self.vacuum_on)
-
-        # === 時間控制模式 (備援) ===
-        # 轉彎完成條件：時間到
+        # === 純時間控制模式 ===
         if elapsed > self.turn_duration:
             self.state = self.STATE_FORWARD
             print(f"[WallFollower] 左轉完成 ({elapsed:.2f}s) -> 直行")
             return VehicleCommand(self.BASE_LINEAR_SPEED, 0, self.vacuum_on)
 
-        # 如果前方已經清空且已轉一小段時間，提早結束
-        if front_valid and front_dist > self.FRONT_SLOW_DISTANCE and elapsed > 0.3:
-            self.state = self.STATE_FORWARD
-            print(f"[WallFollower] 前方清空 ({front_dist}cm) -> 直行")
-            return VehicleCommand(self.BASE_LINEAR_SPEED, 0, self.vacuum_on)
-
-        # 繼續左轉（原地轉：linear=0）
+        # 繼續原地左轉 (linear=0)
         return VehicleCommand(0, -self.TURN_ANGULAR_SPEED, self.vacuum_on)
 
-    def _state_sweep(self, current_time):
+    def _state_find_wall(self, right_dist, right_valid, current_time):
         """
-        角落掃描狀態 - 簡化版本 (約5秒)
+        尋找右牆狀態
 
-        動作序列:
-        Phase 0: 小幅前進靠近角落 (1.5s)
-        Phase 1: 左右擺動清掃 (2.5s)
-        Phase 2: 左轉準備離開 (1s)
-        """
-        elapsed = current_time - self.sweep_start_time
-
-        if elapsed > self.sweep_duration:
-            self.state = self.STATE_FORWARD
-            self.sweep_phase = 0
-            print("[WallFollower] 角落掃描完成")
-            return VehicleCommand(0.4, 0, self.vacuum_on)
-
-        # 動作序列
-        if elapsed < 1.5:
-            # Phase 0: 小幅前進靠近角落
-            return VehicleCommand(0.3, 0, self.vacuum_on)
-        elif elapsed < 4.0:
-            # Phase 1: 左右擺動清掃
-            import math
-            swing = 0.4 * math.sin((elapsed - 1.5) * 3.0)
-            return VehicleCommand(0.15, swing, self.vacuum_on)
-        else:
-            # Phase 2: 左轉準備離開
-            return VehicleCommand(0, -0.5, self.vacuum_on)
-
-    def _state_find_wall(self, right_dist, right_valid, current_time,
-                         yaw=0.0, imu_valid=False):
-        """
-        尋找右牆狀態 (紅圓迴避後使用)
-
-        策略: 右前方前進直到找到右牆
+        策略: 右前方移動直到找到右牆
         """
         elapsed = current_time - self.find_wall_start_time
 
@@ -256,42 +249,28 @@ class WallFollower:
             print("[WallFollower] 找牆超時 -> 直行")
             return VehicleCommand(self.BASE_LINEAR_SPEED, 0, self.vacuum_on)
 
-        # 如果右側偵測到合理距離的牆
+        # 找到右牆
         if right_valid and 10 < right_dist < 50:
             self.state = self.STATE_FORWARD
-            print(f"[WallFollower] 找到右牆 ({right_dist}cm) -> 直行")
+            print(f"[WallFollower] 找到右牆 ({right_dist}cm) -> 沿牆")
             return VehicleCommand(self.BASE_LINEAR_SPEED, 0, self.vacuum_on)
 
-        # 右前方前進 (稍微右偏)
-        return VehicleCommand(0.5, 0.2, self.vacuum_on)
+        # 右前方移動: angular 負值讓左輪快、右輪慢 → 右轉
+        # left=0.75 (PWM 191), right=0.45 (PWM 115)
+        return VehicleCommand(0.6, -0.15, self.vacuum_on)
 
     def trigger_turn_left(self, current_time, yaw: float = None):
-        """
-        手動觸發左轉 (外部呼叫)
-
-        Args:
-            current_time: 當前時間
-            yaw: 當前 Yaw 角度 (可選，若提供則使用 IMU 角度控制)
-        """
+        """手動觸發原地左轉 (外部呼叫)"""
         self.state = self.STATE_TURN_LEFT
         self.turn_start_time = current_time
-
-        # 使用 IMU 角度控制
         if self.imu and yaw is not None:
             self.imu.start_turn(-90, yaw)
-            print(f"[WallFollower] 手動觸發左轉 (IMU: {yaw:.1f}° -> {yaw-90:.1f}°)")
+            print(f"[WallFollower] 手動觸發左轉 (IMU: {yaw:.1f}°)")
         else:
-            print("[WallFollower] 手動觸發左轉 (時間控制)")
-
-    def trigger_sweep(self, current_time):
-        """觸發角落掃描（外部呼叫）"""
-        self.state = self.STATE_SWEEP
-        self.sweep_start_time = current_time
-        self.sweep_phase = 0
-        print("[WallFollower] 觸發角落掃描")
+            print("[WallFollower] 手動觸發左轉 (時間)")
 
     def trigger_find_wall(self, current_time):
-        """觸發尋找右牆 (紅圓迴避後)"""
+        """觸發尋找右牆"""
         self.state = self.STATE_FIND_WALL
         self.find_wall_start_time = current_time
         print("[WallFollower] 觸發尋找右牆")
@@ -305,41 +284,41 @@ class WallFollower:
         return self.state
 
     def is_at_corner(self) -> bool:
-        """是否正在角落（轉彎或掃描中）"""
-        return self.state in [self.STATE_TURN_LEFT, self.STATE_SWEEP]
+        """是否正在角落處理中"""
+        return self.state in [self.STATE_BACKUP, self.STATE_TURN_LEFT]
 
     def reset(self):
         """重置狀態機"""
         self.state = self.STATE_FORWARD
+        self.backup_start_time = None
         self.turn_start_time = None
-        self.sweep_start_time = None
         self.find_wall_start_time = None
-        self.sweep_phase = 0
 
 
 # ==================== 測試程式 ====================
 if __name__ == "__main__":
     import time
 
-    print("========== WallFollower 單元測試 ==========\n")
+    print("========== WallFollower v3.0 單元測試 ==========\n")
 
-    follower = WallFollower()
+    follower = WallFollower(use_imu=False)  # 時間模式測試
 
     # 模擬測試案例
     test_cases = [
         # (front_dist, right_dist, description)
         (100, 15, "正常沿牆 (剛好15cm)"),
-        (100, 22, "離牆太遠 (22cm) -> 應右偏"),
-        (100, 10, "離牆太近 (10cm) -> 應左偏"),
+        (100, 22, "離牆太遠 -> 應右偏"),
+        (100, 10, "離牆太近 -> 應左偏"),
         (35, 15, "前方接近 -> 減速"),
-        (15, 15, "前方障礙 -> 轉彎"),
-        (100, 999, "右側無效 -> 尋牆"),
-        (100, 120, "右側太遠 -> 尋牆"),
+        (14, 20, "角落 (前+右有牆) -> 後退"),
+        (14, 999, "只有前牆 -> 原地左轉"),
+        (100, 999, "都沒牆 -> 右前方找牆"),
     ]
 
     current_time = time.time()
 
     for front, right, desc in test_cases:
+        follower.reset()
         cmd = follower.update(front, right, current_time)
         print(f"[Test] {desc}")
         print(f"       Front: {front}cm, Right: {right}cm")
@@ -347,27 +326,31 @@ if __name__ == "__main__":
         print(f"       Cmd: linear={cmd.linear_velocity:+.2f}, angular={cmd.angular_velocity:+.2f}")
         print()
 
-        # 如果進入轉彎狀態，模擬轉彎完成
-        if follower.get_state() == WallFollower.STATE_TURN_LEFT:
-            current_time += 0.8
-            cmd = follower.update(100, 15, current_time)
-            print(f"       [After Turn] State: {follower.get_state()}")
-            print()
-
-        current_time += 0.1
-
-    # 測試角落掃描
-    print("\n========== 角落掃描測試 ==========\n")
+    # 測試角落流程：後退 -> 左轉 -> 直行
+    print("\n========== 角落流程測試 ==========\n")
     follower.reset()
-    follower.trigger_sweep(current_time)
-    print(f"[Sweep Test] 觸發角落掃描")
-    print(f"             State: {follower.get_state()}")
+    current_time = time.time()
 
-    for i in range(6):  # 模擬 6 秒
-        cmd = follower.update(100, 15, current_time)
-        print(f"[{i}s] State: {follower.get_state()}, "
-              f"linear={cmd.linear_velocity:+.2f}, angular={cmd.angular_velocity:+.2f}")
-        current_time += 1.0
+    # 進入角落
+    cmd = follower.update(14, 20, current_time)
+    print(f"[0.0s] 進入角落 -> State: {follower.get_state()}")
+
+    # 後退中
+    for i in range(3):
+        current_time += 0.1
+        cmd = follower.update(14, 20, current_time)
+        print(f"[{(i+1)*0.1:.1f}s] State: {follower.get_state()}, linear={cmd.linear_velocity:+.2f}")
+
+    # 後退完成，進入左轉
+    current_time += 0.2
+    cmd = follower.update(14, 20, current_time)
+    print(f"[0.5s] State: {follower.get_state()}, angular={cmd.angular_velocity:+.2f}")
+
+    # 左轉中
+    for i in range(4):
+        current_time += 0.2
+        cmd = follower.update(50, 20, current_time)
+        print(f"[{0.5+(i+1)*0.2:.1f}s] State: {follower.get_state()}")
 
     print(f"\n最終狀態: {follower.get_state()}")
     print("========== 測試完成 ==========")

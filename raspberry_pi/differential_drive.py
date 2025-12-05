@@ -22,7 +22,8 @@ class VehicleCommand:
             linear_velocity: 線性速度 (-1.0 ~ +1.0)
                            正值 = 前進，負值 = 後退
             angular_velocity: 角速度 (-1.0 ~ +1.0)
-                            正值 = 右轉，負值 = 左轉
+                            正值 = 左轉（右輪快），負值 = 右轉（左輪快）
+                            公式: left = linear - angular, right = linear + angular
             vacuum_motor: 吸塵器馬達狀態 (True/False)
         """
         self.linear_velocity = self._clamp(linear_velocity, -1.0, 1.0)
@@ -53,15 +54,21 @@ class MotorCommand:
             vacuum: 吸塵器馬達狀態 (True/False)
             ultrasonic_enable: 超聲波啟用狀態 (True/False)
         """
-        self.left_pwm = self._clamp(left_pwm, config.MIN_PWM_VALUE, config.MAX_PWM_VALUE)
-        self.right_pwm = self._clamp(right_pwm, config.MIN_PWM_VALUE, config.MAX_PWM_VALUE)
+        self.left_pwm = self._apply_deadzone(left_pwm)
+        self.right_pwm = self._apply_deadzone(right_pwm)
         self.vacuum = vacuum
         self.ultrasonic_enable = ultrasonic_enable
 
     @staticmethod
-    def _clamp(value, min_val, max_val):
-        """限制數值範圍"""
-        return int(max(min_val, min(max_val, value)))
+    def _apply_deadzone(pwm):
+        """套用死區保護：低於最小有效值的 PWM 提升到最小值，避免馬達不動"""
+        pwm = int(max(config.MIN_PWM_VALUE, min(config.MAX_PWM_VALUE, pwm)))
+        # 如果 PWM 在死區內（太小無法驅動馬達），提升到最小有效值
+        if 0 < pwm < config.MIN_EFFECTIVE_PWM:
+            return config.MIN_EFFECTIVE_PWM
+        elif -config.MIN_EFFECTIVE_PWM < pwm < 0:
+            return -config.MIN_EFFECTIVE_PWM
+        return pwm
 
     def __repr__(self):
         return (f"MotorCommand(left={self.left_pwm:+4d}, "

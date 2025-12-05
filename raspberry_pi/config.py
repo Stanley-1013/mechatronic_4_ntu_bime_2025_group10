@@ -29,6 +29,7 @@ JOYSTICK_BUTTON_EMERGENCY_STOP = 1  # 緊急停止按鈕
 # ==================== 馬達設定 ====================
 MAX_PWM_VALUE = 255               # PWM 最大值
 MIN_PWM_VALUE = -255              # PWM 最小值
+MIN_EFFECTIVE_PWM = 60            # 最小有效 PWM（低於此值馬達可能不動）
 
 # 馬達校準係數（若左右輪速度不一致，可調整此係數）
 MOTOR_LEFT_SCALE = 1.0            # 左輪速度倍率
