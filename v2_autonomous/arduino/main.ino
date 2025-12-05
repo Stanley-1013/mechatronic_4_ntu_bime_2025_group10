@@ -46,6 +46,7 @@ MPU6050Sensor imu;
 // ==================== 全域狀態變數 ====================
 bool systemRunning = false;        // 系統是否在執行沿牆
 unsigned long lastStatusReport = 0;
+unsigned long lastImuUpdate = 0;   // IMU 獨立更新計時
 const unsigned long STATUS_REPORT_INTERVAL = 100; // 100ms = 10Hz
 
 // 感測器讀值
@@ -184,11 +185,15 @@ void loop() {
     }
     readFrontNext = !readFrontNext;
 
-    yaw = 0;
+    // IMU 獨立高頻更新 (50Hz = 20ms 間隔，確保陀螺儀積分精度)
     bool currentImuValid = false;
     #ifdef MPU6050_ENABLED
     if (imuValid) {
-        imu.update();
+        unsigned long currentTime = millis();
+        if (currentTime - lastImuUpdate >= IMU_UPDATE_INTERVAL) {
+            imu.update();
+            lastImuUpdate = currentTime;
+        }
         yaw = imu.getYaw();
         currentImuValid = true;
     }
@@ -209,10 +214,14 @@ void loop() {
         // 暫時讓 wallFollower 決定
     }
 
-    // 4. 定期回報狀態給 Pi
+    // 4. 定期回報狀態給 Pi (帶 TX 緩衝區檢查，避免阻塞)
     if (millis() - lastStatusReport >= STATUS_REPORT_INTERVAL) {
-        sendStatusReport();
-        lastStatusReport = millis();
+        // 檢查 TX 緩衝區是否有足夠空間 (PKT_STATE_LENGTH = 12 bytes)
+        if (Serial.availableForWrite() >= PKT_STATE_LENGTH) {
+            sendStatusReport();
+            lastStatusReport = millis();
+        }
+        // 若緩衝區不足，跳過本次發送，下次再試
     }
 }
 

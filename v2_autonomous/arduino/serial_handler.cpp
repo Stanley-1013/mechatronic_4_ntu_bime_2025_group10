@@ -197,7 +197,6 @@ void SerialHandler::sendState(uint8_t state, uint8_t cornerCount,
     // Footer
     packet[index++] = PKT_FOOTER_STATE;  // 0x66
 
-    // 發送封包
+    // 發送封包 (不使用 flush()，避免阻塞)
     Serial.write(packet, PKT_STATE_LENGTH);
-    Serial.flush();
 }
