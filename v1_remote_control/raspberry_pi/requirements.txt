@@ -1,0 +1,14 @@
+# 機電小車遙控系統 - Python 依賴套件
+# 版本: 1.0
+# 安裝: pip3 install -r requirements.txt
+
+# 遙控器輸入
+pygame>=2.5.0
+
+# Serial 通訊
+pyserial>=3.5
+
+# 測試框架
+pytest>=7.4.0
+pytest-cov>=4.1.0
+pytest-mock>=3.11.0
