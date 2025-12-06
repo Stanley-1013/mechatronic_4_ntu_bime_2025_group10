@@ -9,19 +9,20 @@ import threading
 import time
 from protocol import (
     CommandPacket, StatePacket,
-    CMD_START, CMD_STOP, CMD_AVOID_RED, CMD_SET_VACUUM, CMD_QUERY_STATE,
+    CMD_START, CMD_STOP, CMD_AVOID_RED, CMD_SET_VACUUM, CMD_QUERY_STATE, CMD_SET_PID, CMD_SET_PARAMS,
     STATE_IDLE, PKT_HEADER_STATE, PKT_STATE_LENGTH,
     STATE_NAMES, VACUUM_ON, VACUUM_OFF,
     create_cmd_start, create_cmd_stop, create_cmd_avoid_red,
-    create_cmd_set_vacuum, create_cmd_query_state,
+    create_cmd_set_vacuum, create_cmd_query_state, create_cmd_set_pid, create_cmd_set_params,
     verify_state_packet
 )
 from red_detector import RedDetector
+import config as cfg
 
 
-# 紅色偵測參數
-RED_AREA_THRESHOLD = 2000  # 紅色面積閾值（需實測調整）
-RED_CHECK_INTERVAL = 0.5   # 紅色檢查間隔（秒）
+# 紅色偵測參數 (從 config.py 讀取)
+RED_AREA_THRESHOLD = cfg.RED_AREA_THRESHOLD
+RED_CHECK_INTERVAL = cfg.RED_CHECK_INTERVAL
 
 
 class RobotController:
@@ -66,12 +67,18 @@ class RobotController:
         # 紅色偵測狀態
         self._last_red_check = 0
         self._red_avoiding = False
+        self._red_clear_time = 0  # 紅色消失的時間點 (用於延遲重開吸塵器)
 
     def start(self):
         """啟動控制器"""
         self.running = True
         self._rx_thread = threading.Thread(target=self._receive_loop, daemon=True)
         self._rx_thread.start()
+
+        # 發送控制參數到 Arduino
+        time.sleep(0.1)  # 等待串列連接穩定
+        self.send_set_params()
+        print("[Controller] 控制參數已同步到 Arduino")
 
         # 啟動紅色偵測背景執行緒
         if self.red_detector:
@@ -97,17 +104,20 @@ class RobotController:
         """發送開始指令"""
         packet = create_cmd_start()
         self.serial.write(packet.serialize())
+        self.serial.flush()
         self._red_avoiding = False  # 重置紅色避障狀態
 
     def send_stop(self):
         """發送停止指令"""
         packet = create_cmd_stop()
         self.serial.write(packet.serialize())
+        self.serial.flush()
 
     def send_avoid_red(self):
         """發送避紅色指令"""
         packet = create_cmd_avoid_red()
         self.serial.write(packet.serialize())
+        self.serial.flush()
         self._red_avoiding = True
 
     def send_set_vacuum(self, on: bool):
@@ -124,6 +134,50 @@ class RobotController:
         """查詢當前狀態"""
         packet = create_cmd_query_state()
         self.serial.write(packet.serialize())
+
+    def send_set_pid(self, kp: float, ki: float, kd: float):
+        """
+        設定 PID 參數
+
+        Args:
+            kp: 比例增益 (推薦範圍 0.01 ~ 0.1)
+            ki: 積分增益 (推薦範圍 0.001 ~ 0.01)
+            kd: 微分增益 (推薦範圍 0.005 ~ 0.05)
+        """
+        packet = create_cmd_set_pid(kp, ki, kd)
+        self.serial.write(packet.serialize())
+        self.serial.flush()
+
+    def send_set_params(self):
+        """
+        發送所有控制參數到 Arduino
+
+        從 config.py 讀取參數並發送 CMD_SET_PARAMS 指令
+        """
+        params = cfg.get_all_params()
+        packet = create_cmd_set_params(
+            target_right_dist=params['target_right_dist'],
+            front_stop_dist=params['front_stop_dist'],
+            front_slow_dist=params['front_slow_dist'],
+            corner_right_dist=params['corner_right_dist'],
+            base_linear_speed=params['base_linear_speed'],
+            backup_speed=params['backup_speed'],
+            turn_angular_speed=params['turn_angular_speed'],
+            find_wall_linear=params['find_wall_linear'],
+            left_motor_scale=params['left_motor_scale'],
+            right_motor_scale=params['right_motor_scale'],
+            kp=params['kp'],
+            ki=params['ki'],
+            kd=params['kd'],
+            min_effective_pwm=params['min_effective_pwm'],
+            corner_turn_angle=params['corner_turn_angle'],
+            red_avoid_angle=params['red_avoid_angle'],
+            backup_duration_ms=params['backup_duration_ms'],
+            turn_timeout_ms=params['turn_timeout_ms'],
+        )
+        self.serial.write(packet.serialize())
+        self.serial.flush()
+        print(f"[Controller] 已發送控制參數: {params}")
 
     # === 狀態接收 ===
 
@@ -159,19 +213,48 @@ class RobotController:
         # 取得紅色偵測結果
         detected, area = self.red_detector.get_result()
 
-        # 當偵測到大面積紅色且未在避障狀態時，發送避紅色指令
-        if detected and area > RED_AREA_THRESHOLD and not self._red_avoiding:
-            print(f"[Controller] 偵測到紅色區域 (面積={area})，發送避障指令")
-            self.send_avoid_red()
+        red_now = detected and area > RED_AREA_THRESHOLD
 
-            # 觸發回調
-            if self.on_red_detected:
-                self.on_red_detected(area)
+        if not self._red_avoiding:
+            # 尚未進入避障狀態
+            if red_now:
+                # 偵測到紅色，開始避障
+                strategy = cfg.RED_AVOID_STRATEGY
 
-        # 如果紅色消失，重置避障狀態
-        elif not detected and self._red_avoiding:
-            print("[Controller] 紅色區域消失，重置避障狀態")
-            self._red_avoiding = False
+                if strategy == "vacuum_off":
+                    print(f"[Controller] 偵測到紅色區域 (面積={area})，關閉吸塵器")
+                    self.send_set_vacuum(False)
+                else:  # "turn_avoid"
+                    print(f"[Controller] 偵測到紅色區域 (面積={area})，發送避障指令")
+                    self.send_avoid_red()
+
+                self._red_avoiding = True
+
+                if self.on_red_detected:
+                    self.on_red_detected(area)
+        else:
+            # 已在避障狀態中
+            if red_now:
+                # 紅色還在，重置延遲計時
+                self._red_clear_time = 0
+            else:
+                # 紅色消失
+                strategy = cfg.RED_AVOID_STRATEGY
+
+                if strategy == "vacuum_off":
+                    # 延遲重開吸塵器
+                    if self._red_clear_time == 0:
+                        self._red_clear_time = now
+                        print("[Controller] 紅色區域消失，等待延遲後重開吸塵器...")
+                    elif now - self._red_clear_time >= cfg.RED_CLEAR_DELAY:
+                        print(f"[Controller] 延遲 {cfg.RED_CLEAR_DELAY}s 後，重新開啟吸塵器")
+                        self.send_set_vacuum(True)
+                        self._red_avoiding = False
+                        self._red_clear_time = 0
+                else:
+                    # turn_avoid 模式直接重置
+                    print("[Controller] 紅色區域消失，重置避障狀態")
+                    self._red_avoiding = False
 
     def _process_buffer(self, buffer):
         """
@@ -281,57 +364,121 @@ if __name__ == "__main__":
     import argparse
 
     parser = argparse.ArgumentParser(description='v2 Robot Controller')
-    parser.add_argument('--port', default='/dev/ttyACM0', help='Serial port')
+    parser.add_argument('--port', default=cfg.SERIAL_PORT, help='Serial port')
     parser.add_argument('--no-red', action='store_true', help='Disable red detection')
     args = parser.parse_args()
 
-    controller = RobotController(port=args.port, enable_red_detection=not args.no_red)
+    controller = RobotController(port=args.port, baudrate=cfg.SERIAL_BAUDRATE, enable_red_detection=not args.no_red)
     controller.start()
 
     print("v2 Robot Controller")
-    print("Commands: start, stop, red, vacuum on/off, query, status, red_status, quit")
+    print("1=START  2=STOP  3=RED  4=VACUUM ON  5=VACUUM OFF")
+    print("6=STATUS (once)  7=MONITOR (continuous)  8=SET PID")
+    print("9=SYNC PARAMS (re-send config.py)  0=QUIT")
     print()
+
+    def print_status_once():
+        """印出一次狀態"""
+        state = controller.get_state()
+        red = controller.get_red_detection_status()
+        print(f"State: {state['state_name']} (0x{state['state']:02X})")
+        print(f"  Corners: {state['corner_count']}")
+        print(f"  Front: {state['front_dist']}cm, Right: {state['right_dist']}cm")
+        print(f"  Yaw: {state['yaw']:.1f}°")
+        print(f"  Flags: 0x{state['flags']:02X}")
+        print(f"  Red: detected={red['detected']}, area={red['area']}, avoiding={red['avoiding']}")
+
+    def continuous_monitor():
+        """持續監控模式 (按 Ctrl+C 退出)"""
+        print("Continuous monitor (Ctrl+C to stop)...")
+        print("-" * 60)
+        try:
+            while True:
+                state = controller.get_state()
+                red = controller.get_red_detection_status()
+                # 使用 \r 覆蓋同一行，加上固定寬度
+                line = (f"\rState: {state['state_name']:10s} | "
+                        f"F:{state['front_dist']:3d}cm R:{state['right_dist']:3d}cm | "
+                        f"Yaw:{state['yaw']:6.1f}° | "
+                        f"Corners:{state['corner_count']} | "
+                        f"Red:{int(red['area']):5d}")
+                print(line, end='', flush=True)
+                time.sleep(0.2)  # 5Hz 更新
+        except KeyboardInterrupt:
+            print("\n" + "-" * 60)
+            print("Monitor stopped")
+
+    def set_pid_interactive():
+        """互動式 PID 調參"""
+        print("\n=== PID 調參 ===")
+        print("預設值: Kp=0.025, Ki=0.002, Kd=0.010")
+        print("輸入格式: Kp Ki Kd (空白分隔)")
+        print("範例: 0.03 0.002 0.015")
+        print("直接 Enter 使用預設值，輸入 q 取消")
+
+        try:
+            line = input("PID> ").strip()
+            if line == '' or line.lower() == 'q':
+                print("取消")
+                return
+
+            parts = line.split()
+            if len(parts) != 3:
+                print("錯誤：需要 3 個參數 (Kp Ki Kd)")
+                return
+
+            kp = float(parts[0])
+            ki = float(parts[1])
+            kd = float(parts[2])
+
+            # 驗證範圍
+            if not (0 <= kp <= 1.0):
+                print(f"警告：Kp={kp} 超出建議範圍 0~1.0")
+            if not (0 <= ki <= 0.1):
+                print(f"警告：Ki={ki} 超出建議範圍 0~0.1")
+            if not (0 <= kd <= 0.5):
+                print(f"警告：Kd={kd} 超出建議範圍 0~0.5")
+
+            controller.send_set_pid(kp, ki, kd)
+            print(f"已發送 PID: Kp={kp}, Ki={ki}, Kd={kd}")
+
+        except ValueError as e:
+            print(f"錯誤：無效的數值 - {e}")
 
     try:
         while True:
-            cmd = input("> ").strip().lower()
+            cmd = input("> ").strip()
 
-            if cmd == 'start':
+            if cmd == '1':
                 controller.send_start()
                 print("Sent START")
-            elif cmd == 'stop':
+            elif cmd == '2':
                 controller.send_stop()
                 print("Sent STOP")
-            elif cmd == 'red':
+            elif cmd == '3':
                 controller.send_avoid_red()
                 print("Sent AVOID_RED")
-            elif cmd == 'vacuum on':
+            elif cmd == '4':
                 controller.send_set_vacuum(True)
                 print("Vacuum ON")
-            elif cmd == 'vacuum off':
+            elif cmd == '5':
                 controller.send_set_vacuum(False)
                 print("Vacuum OFF")
-            elif cmd == 'query':
-                controller.send_query_state()
-                print("Sent QUERY_STATE")
-            elif cmd == 'status':
-                state = controller.get_state()
-                print(f"State: {state['state_name']} (0x{state['state']:02X})")
-                print(f"  Corners: {state['corner_count']}")
-                print(f"  Front: {state['front_dist']}cm, Right: {state['right_dist']}cm")
-                print(f"  Yaw: {state['yaw']:.1f}°")
-                print(f"  Flags: 0x{state['flags']:02X}")
-            elif cmd == 'red_status':
-                red_status = controller.get_red_detection_status()
-                print(f"Red Detection: {red_status['detected']}")
-                print(f"  Area: {red_status['area']}")
-                print(f"  Avoiding: {red_status['avoiding']}")
-            elif cmd == 'quit':
+            elif cmd == '6':
+                print_status_once()
+            elif cmd == '7':
+                continuous_monitor()
+            elif cmd == '8':
+                set_pid_interactive()
+            elif cmd == '9':
+                controller.send_set_params()
+                print("參數已同步")
+            elif cmd == '0':
                 break
             elif cmd == '':
                 continue
             else:
-                print("Unknown command. Try: start, stop, red, vacuum on/off, query, status, red_status, quit")
+                print("1=START 2=STOP 3=RED 4=VAC_ON 5=VAC_OFF 6=STATUS 7=MONITOR 8=PID 9=SYNC 0=QUIT")
     except KeyboardInterrupt:
         print()
     finally:

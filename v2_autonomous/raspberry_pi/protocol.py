@@ -22,6 +22,8 @@ CMD_STOP = 0x02         # 停止執行
 CMD_AVOID_RED = 0x03    # 迴避紅色區域
 CMD_SET_VACUUM = 0x04   # 設定吸塵器開關 (payload: 0x00 關閉, 0x01 開啟)
 CMD_QUERY_STATE = 0x05  # 查詢當前狀態 (無 payload)
+CMD_SET_PID = 0x06      # 設定 PID 參數 (payload: Kp*1000, Ki*1000, Kd*1000 各 2 bytes, 共 6 bytes)
+CMD_SET_PARAMS = 0x07   # 設定所有控制參數 (payload: 32 bytes)
 
 # ============================================================================
 # Arduino → Pi 狀態回報
@@ -117,6 +119,8 @@ CMD_NAMES = {
     CMD_AVOID_RED: "AVOID_RED",
     CMD_SET_VACUUM: "SET_VACUUM",
     CMD_QUERY_STATE: "QUERY_STATE",
+    CMD_SET_PID: "SET_PID",
+    CMD_SET_PARAMS: "SET_PARAMS",
 }
 
 # ============================================================================
@@ -389,6 +393,124 @@ def create_cmd_set_vacuum(enabled: bool) -> CommandPacket:
 def create_cmd_query_state() -> CommandPacket:
     """建立 QUERY_STATE 指令"""
     return CommandPacket(CMD_QUERY_STATE)
+
+
+def create_cmd_set_pid(kp: float, ki: float, kd: float) -> CommandPacket:
+    """
+    建立 SET_PID 指令
+
+    Args:
+        kp: 比例增益 (0.0 ~ 65.535)
+        ki: 積分增益 (0.0 ~ 65.535)
+        kd: 微分增益 (0.0 ~ 65.535)
+
+    Returns:
+        CommandPacket: PID 設定指令封包
+
+    Note:
+        PID 參數會乘以 1000 轉為整數傳輸 (2 bytes each, big-endian)
+        例如 Kp=0.025 -> 25, Ki=0.002 -> 2, Kd=0.010 -> 10
+    """
+    # 轉換為整數 (乘以 1000)
+    kp_int = int(kp * 1000)
+    ki_int = int(ki * 1000)
+    kd_int = int(kd * 1000)
+
+    # 限制範圍 (0 ~ 65535)
+    kp_int = max(0, min(65535, kp_int))
+    ki_int = max(0, min(65535, ki_int))
+    kd_int = max(0, min(65535, kd_int))
+
+    # 組裝 payload (6 bytes, big-endian)
+    payload = bytes([
+        (kp_int >> 8) & 0xFF, kp_int & 0xFF,
+        (ki_int >> 8) & 0xFF, ki_int & 0xFF,
+        (kd_int >> 8) & 0xFF, kd_int & 0xFF,
+    ])
+
+    return CommandPacket(CMD_SET_PID, payload)
+
+
+def create_cmd_set_params(
+    target_right_dist: int,
+    front_stop_dist: int,
+    front_slow_dist: int,
+    corner_right_dist: int,
+    base_linear_speed: float,
+    backup_speed: float,
+    turn_angular_speed: float,
+    find_wall_linear: float,
+    left_motor_scale: float,
+    right_motor_scale: float,
+    kp: float,
+    ki: float,
+    kd: float,
+    min_effective_pwm: int,
+    corner_turn_angle: int,
+    red_avoid_angle: int,
+    backup_duration_ms: int,
+    turn_timeout_ms: int
+) -> CommandPacket:
+    """
+    建立 SET_PARAMS 指令 - 設定所有沿牆控制參數
+
+    Payload 格式 (32 bytes, little-endian):
+    - Offset 0-3: 距離閾值 (4 x uint8)
+    - Offset 4-15: 速度參數 (6 x int16, *100) - 含左右輪 scale
+    - Offset 16-21: PID 參數 (3 x uint16, *1000)
+    - Offset 22-24: PWM/角度 (3 x uint8)
+    - Offset 25: padding
+    - Offset 26-29: 時間參數 (2 x uint16)
+    - Offset 30-31: reserved
+    """
+
+    # 距離閾值 (uint8)
+    dist_bytes = bytes([
+        target_right_dist & 0xFF,
+        front_stop_dist & 0xFF,
+        front_slow_dist & 0xFF,
+        corner_right_dist & 0xFF,
+    ])
+
+    # 速度參數 (int16 * 100, little-endian) - 6 個參數
+    speed_bytes = struct.pack('<6h',
+        int(base_linear_speed * 100),
+        int(backup_speed * 100),
+        int(turn_angular_speed * 100),
+        int(find_wall_linear * 100),
+        int(left_motor_scale * 100),
+        int(right_motor_scale * 100),
+    )
+
+    # PID 參數 (uint16 * 1000, little-endian)
+    pid_bytes = struct.pack('<3H',
+        int(kp * 1000),
+        int(ki * 1000),
+        int(kd * 1000),
+    )
+
+    # 其他參數
+    misc_bytes = bytes([
+        min_effective_pwm & 0xFF,
+        corner_turn_angle & 0xFF,
+        red_avoid_angle & 0xFF,
+        0x00,  # padding
+    ])
+
+    # 時間參數 (uint16, little-endian)
+    time_bytes = struct.pack('<2H',
+        backup_duration_ms,
+        turn_timeout_ms,
+    )
+
+    # Reserved (2 bytes) - 縮減因為速度參數多了 2 bytes
+    reserved_bytes = bytes([0x00, 0x00])
+
+    # 組合 payload (32 bytes)
+    # 4 (dist) + 12 (speed) + 6 (pid) + 4 (misc) + 4 (time) + 2 (reserved) = 32
+    payload = dist_bytes + speed_bytes + pid_bytes + misc_bytes + time_bytes + reserved_bytes
+
+    return CommandPacket(CMD_SET_PARAMS, payload)
 
 
 if __name__ == "__main__":
