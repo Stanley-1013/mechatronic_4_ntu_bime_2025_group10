@@ -27,6 +27,7 @@ MPU6050Sensor::MPU6050Sensor()
     , _gyroOffsetX(0), _gyroOffsetY(0), _gyroOffsetZ(0)
     , _lastUpdateTime(0)
     , _initialized(false)
+    , _errorCount(0)
 {
 }
 
@@ -121,9 +122,21 @@ void MPU6050Sensor::readRawData() {
     // 從 0x3B (ACCEL_XOUT_H) 開始連續讀取 14 bytes
     Wire.beginTransmission(MPU_ADDR);
     Wire.write(REG_ACCEL_XOUT_H);
-    Wire.endTransmission(false);  // repeated start
+    uint8_t err = Wire.endTransmission(false);  // repeated start
 
-    Wire.requestFrom((uint8_t)MPU_ADDR, (uint8_t)14, (uint8_t)true);
+    // I2C 傳輸錯誤檢查
+    if (err != 0) {
+        _errorCount++;
+        return;  // 保持舊值，不更新
+    }
+
+    uint8_t bytesReceived = Wire.requestFrom((uint8_t)MPU_ADDR, (uint8_t)14, (uint8_t)true);
+
+    // 檢查是否收到足夠的資料
+    if (bytesReceived != 14) {
+        _errorCount++;
+        return;  // 資料不完整，保持舊值
+    }
 
     // 讀取加速度 (16-bit, big-endian)
     int16_t rawAccelX = Wire.read() << 8 | Wire.read();
@@ -147,6 +160,9 @@ void MPU6050Sensor::readRawData() {
     _gyroX = rawGyroX / GYRO_SENSITIVITY;
     _gyroY = rawGyroY / GYRO_SENSITIVITY;
     _gyroZ = rawGyroZ / GYRO_SENSITIVITY;
+
+    // 成功讀取，重置錯誤計數
+    _errorCount = 0;
 }
 
 void MPU6050Sensor::writeRegister(uint8_t reg, uint8_t value) {

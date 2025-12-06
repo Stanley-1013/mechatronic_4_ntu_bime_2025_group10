@@ -16,6 +16,8 @@
 #define CMD_AVOID_RED   0x03  // 迴避紅色區域
 #define CMD_SET_VACUUM  0x04  // 設定吸塵器開關 (payload: 0x00 關閉, 0x01 開啟)
 #define CMD_QUERY_STATE 0x05  // 查詢當前狀態 (無 payload)
+#define CMD_SET_PID     0x06  // 設定 PID 參數 (payload: Kp*1000, Ki*1000, Kd*1000 各 2 bytes)
+#define CMD_SET_PARAMS  0x07  // 設定所有控制參數 (payload: 32 bytes，見 Pi config.py)
 
 // --- Arduino → Pi 狀態回報 ---
 // 注意: v2.0 簡化為連續控制，只回報 IDLE/RUNNING/DONE

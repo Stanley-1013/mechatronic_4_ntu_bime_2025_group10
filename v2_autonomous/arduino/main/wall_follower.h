@@ -93,6 +93,54 @@ public:
      */
     bool isCornerLocked();
 
+    /**
+     * 設定 PID 參數 (可由 Pi 動態調整)
+     */
+    void setPID(float kp, float ki, float kd);
+
+    /**
+     * 設定所有控制參數 (由 Pi 透過 CMD_SET_PARAMS 呼叫)
+     *
+     * @param targetRightDist  目標右側距離 (cm)
+     * @param frontStopDist    前方停止距離 (cm)
+     * @param frontSlowDist    前方減速距離 (cm)
+     * @param cornerRightDist  角落右側閾值 (cm)
+     * @param baseLinearSpeed  基礎前進速度 (-1.0 ~ +1.0)
+     * @param backupSpeed      後退速度 (-1.0 ~ +1.0)
+     * @param turnAngularSpeed 角落轉彎角速度
+     * @param findWallLinear   尋牆前進速度
+     * @param leftMotorScale   左輪速度倍率 (補償馬達差異)
+     * @param rightMotorScale  右輪速度倍率 (補償馬達差異)
+     * @param kp               PID 比例增益
+     * @param ki               PID 積分增益
+     * @param kd               PID 微分增益
+     * @param minEffectivePWM  最小有效 PWM (死區)
+     * @param cornerTurnAngle  角落轉彎角度 (度)
+     * @param redAvoidAngle    紅色迴避角度 (度)
+     * @param backupDurationMs 後退持續時間 (ms)
+     * @param turnTimeoutMs    轉彎超時 (ms)
+     */
+    void setParams(
+        uint8_t targetRightDist,
+        uint8_t frontStopDist,
+        uint8_t frontSlowDist,
+        uint8_t cornerRightDist,
+        float baseLinearSpeed,
+        float backupSpeed,
+        float turnAngularSpeed,
+        float findWallLinear,
+        float leftMotorScale,
+        float rightMotorScale,
+        float kp,
+        float ki,
+        float kd,
+        uint8_t minEffectivePWM,
+        float cornerTurnAngle,
+        float redAvoidAngle,
+        uint16_t backupDurationMs,
+        uint16_t turnTimeoutMs
+    );
+
 private:
     // ==================== 狀態變數 ====================
     bool _running;                 // 是否執行中
@@ -105,6 +153,9 @@ private:
     unsigned long _backupStartTime; // 後退開始時間 (ms)
     float _backupYaw;              // 後退開始時的 yaw 角度
 
+    // ==================== 啟動保護 ====================
+    unsigned long _startupGracePeriod;  // 啟動時間戳 (用於保護期)
+
     // ==================== 感測器濾波 ====================
     int _frontHistory[3];          // 前方距離歷史 (中值濾波)
     int _rightHistory[3];          // 右側距離歷史
@@ -113,6 +164,17 @@ private:
     // ==================== 馬達 PWM 輸出 ====================
     int _leftPWM;                  // 左馬達 PWM (-255 ~ +255)
     int _rightPWM;                 // 右馬達 PWM (-255 ~ +255)
+
+    // ==================== PID 控制變數 ====================
+    float _lastError;              // 上一次的誤差 (用於 D 項)
+    float _integral;               // 積分累積值 (用於 I 項)
+    unsigned long _lastUpdateTime; // 上次更新時間 (用於計算 dt)
+
+    // ==================== IMU 航向控制 ====================
+    float _targetYaw;              // 目標航向（度）
+    bool _yawLocked;               // 航向是否已鎖定
+    float _driftTimer;             // 漂移計時器（秒）
+    float _lastTurnYaw;            // 轉彎起始航向
 
     // ==================== 輔助函數 ====================
 
@@ -140,6 +202,12 @@ private:
      * 線性映射
      */
     float _mapRange(float x, float inMin, float inMax, float outMin, float outMax);
+
+    /**
+     * 正規化角度到 [-180, 180] 範圍
+     * 用於計算航向誤差
+     */
+    float _normalizeAngle(float angle);
 };
 
 #endif // WALL_FOLLOWER_H

@@ -102,7 +102,7 @@ void SerialHandler::process() {
                 }
                 break;
 
-            case RX_READ_CHECKSUM:
+            case RX_READ_CHECKSUM: {
                 // 防止緩衝區溢出：在寫入前檢查
                 if (_rxIndex >= sizeof(_rxBuffer)) {
                     _resetRx();
@@ -115,13 +115,12 @@ void SerialHandler::process() {
                 uint8_t expectedChecksum = calc_cmd_checksum(_currentCmd, _payloadLen,
                                                                _payloadLen > 0 ? &_rxBuffer[3] : nullptr);
                 if (byte != expectedChecksum) {
-                    // checksum 失敗，重置
                     _resetRx();
                     break;
                 }
-
                 _rxState = RX_READ_FOOTER;
                 break;
+            }
 
             case RX_READ_FOOTER:
                 // 防止緩衝區溢出：在寫入前檢查
@@ -135,9 +134,6 @@ void SerialHandler::process() {
                 if (byte == PKT_FOOTER_CMD) {
                     // 完整的封包接收成功
                     _processPacket();
-                } else {
-                    // footer 不匹配
-                    // 可能是同步錯誤，重置狀態機
                 }
 
                 _resetRx();

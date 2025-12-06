@@ -26,6 +26,7 @@
 #include "motor_driver.h"
 #include "ultrasonic_sensor.h"
 #include "vacuum_controller.h"
+#include <avr/wdt.h>  // Watchdog Timer
 
 #ifdef MPU6050_ENABLED
 #include "mpu6050_sensor.h"
@@ -102,6 +103,121 @@ void onCommandReceived(uint8_t cmd, uint8_t payloadLen, uint8_t* payload) {
             Serial.println(F("[CMD] QUERY_STATE"));
             break;
 
+        case CMD_SET_PID:
+            // 設定 PID 參數 (payload: Kp*1000, Ki*1000, Kd*1000 各 2 bytes, 共 6 bytes)
+            if (payloadLen >= 6) {
+                uint16_t kpInt = (payload[0] << 8) | payload[1];
+                uint16_t kiInt = (payload[2] << 8) | payload[3];
+                uint16_t kdInt = (payload[4] << 8) | payload[5];
+                float kp = kpInt / 1000.0;
+                float ki = kiInt / 1000.0;
+                float kd = kdInt / 1000.0;
+                wallFollower.setPID(kp, ki, kd);
+                Serial.print(F("[CMD] SET_PID - Kp="));
+                Serial.print(kp, 3);
+                Serial.print(F(" Ki="));
+                Serial.print(ki, 3);
+                Serial.print(F(" Kd="));
+                Serial.println(kd, 3);
+            }
+            break;
+
+        case CMD_SET_PARAMS:
+            // 設定所有控制參數 (payload: 32 bytes, little-endian)
+            // 格式: 4 dist + 12 speed + 6 pid + 4 misc + 4 time + 2 reserved = 32
+            if (payloadLen >= 32) {
+                // 解析距離閾值 (4 uint8, offset 0-3)
+                uint8_t targetRightDist = payload[0];
+                uint8_t frontStopDist = payload[1];
+                uint8_t frontSlowDist = payload[2];
+                uint8_t cornerRightDist = payload[3];
+
+                // 解析速度參數 (6 int16, little-endian, * 100, offset 4-15)
+                int16_t baseLinearRaw = (int16_t)(payload[4] | (payload[5] << 8));
+                int16_t backupRaw = (int16_t)(payload[6] | (payload[7] << 8));
+                int16_t turnAngularRaw = (int16_t)(payload[8] | (payload[9] << 8));
+                int16_t findWallLinRaw = (int16_t)(payload[10] | (payload[11] << 8));
+                int16_t leftMotorScaleRaw = (int16_t)(payload[12] | (payload[13] << 8));
+                int16_t rightMotorScaleRaw = (int16_t)(payload[14] | (payload[15] << 8));
+
+                float baseLinearSpeed = baseLinearRaw / 100.0;
+                float backupSpeed = backupRaw / 100.0;
+                float turnAngularSpeed = turnAngularRaw / 100.0;
+                float findWallLinear = findWallLinRaw / 100.0;
+                float leftMotorScale = leftMotorScaleRaw / 100.0;
+                float rightMotorScale = rightMotorScaleRaw / 100.0;
+
+                // 解析 PID (3 uint16, little-endian, * 1000, offset 16-21)
+                uint16_t kpRaw = (uint16_t)(payload[16] | (payload[17] << 8));
+                uint16_t kiRaw = (uint16_t)(payload[18] | (payload[19] << 8));
+                uint16_t kdRaw = (uint16_t)(payload[20] | (payload[21] << 8));
+
+                float kp = kpRaw / 1000.0;
+                float ki = kiRaw / 1000.0;
+                float kd = kdRaw / 1000.0;
+
+                // 解析其他參數 (offset 22-25)
+                uint8_t minEffectivePWM = payload[22];
+                uint8_t cornerTurnAngleInt = payload[23];
+                uint8_t redAvoidAngleInt = payload[24];
+                // payload[25] = padding
+
+                // 時間參數 (offset 26-29)
+                uint16_t backupDurationMs = (uint16_t)(payload[26] | (payload[27] << 8));
+                uint16_t turnTimeoutMs = (uint16_t)(payload[28] | (payload[29] << 8));
+                // payload[30-31] = reserved
+
+                // 呼叫 setParams
+                wallFollower.setParams(
+                    targetRightDist,
+                    frontStopDist,
+                    frontSlowDist,
+                    cornerRightDist,
+                    baseLinearSpeed,
+                    backupSpeed,
+                    turnAngularSpeed,
+                    findWallLinear,
+                    leftMotorScale,
+                    rightMotorScale,
+                    kp,
+                    ki,
+                    kd,
+                    minEffectivePWM,
+                    (float)cornerTurnAngleInt,
+                    (float)redAvoidAngleInt,
+                    backupDurationMs,
+                    turnTimeoutMs
+                );
+
+                Serial.println(F("[CMD] SET_PARAMS - All parameters updated"));
+                Serial.print(F("  Dist: R="));
+                Serial.print(targetRightDist);
+                Serial.print(F(" FStop="));
+                Serial.print(frontStopDist);
+                Serial.print(F(" FSlow="));
+                Serial.print(frontSlowDist);
+                Serial.print(F(" Corner="));
+                Serial.println(cornerRightDist);
+                Serial.print(F("  Speed: base="));
+                Serial.print(baseLinearSpeed, 2);
+                Serial.print(F(" turn="));
+                Serial.print(turnAngularSpeed, 2);
+                Serial.print(F(" L_scale="));
+                Serial.print(leftMotorScale, 2);
+                Serial.print(F(" R_scale="));
+                Serial.println(rightMotorScale, 2);
+                Serial.print(F("  PID: Kp="));
+                Serial.print(kp, 3);
+                Serial.print(F(" Ki="));
+                Serial.print(ki, 3);
+                Serial.print(F(" Kd="));
+                Serial.println(kd, 3);
+            } else {
+                Serial.print(F("[CMD] SET_PARAMS - Invalid payload length: "));
+                Serial.println(payloadLen);
+            }
+            break;
+
         default:
             Serial.print(F("[CMD] Unknown command: 0x"));
             Serial.println(cmd, HEX);
@@ -111,6 +227,30 @@ void onCommandReceived(uint8_t cmd, uint8_t payloadLen, uint8_t* payload) {
 
 // ==================== Setup 函數 ====================
 void setup() {
+    // !! 緊急: 先停用 Watchdog (如果是 watchdog 重置的話)
+    MCUSR = 0;
+    wdt_disable();
+
+    // !! 緊急: 第一時間強制馬達停止 (避免 EMI 重置後繼續轉)
+    // 直接操作 L298N 腳位，不等待任何初始化
+    pinMode(PIN_ENA, OUTPUT);
+    pinMode(PIN_IN1, OUTPUT);
+    pinMode(PIN_IN2, OUTPUT);
+    pinMode(PIN_ENB, OUTPUT);
+    pinMode(PIN_IN3, OUTPUT);
+    pinMode(PIN_IN4, OUTPUT);
+
+    // 強制停止: PWM = 0, 方向 = LOW
+    analogWrite(PIN_ENA, 0);
+    analogWrite(PIN_ENB, 0);
+    digitalWrite(PIN_IN1, LOW);
+    digitalWrite(PIN_IN2, LOW);
+    digitalWrite(PIN_IN3, LOW);
+    digitalWrite(PIN_IN4, LOW);
+
+    // 等待馬達完全停止，讓 EMI 消退
+    delay(200);
+
     // 初始化硬體 Serial (USB，與 Pi 通訊)
     Serial.begin(115200);
     delay(100);
@@ -123,7 +263,7 @@ void setup() {
     Serial.println(F("========================================="));
     Serial.println(F("Initializing modules..."));
 
-    // 初始化馬達驅動
+    // 初始化馬達驅動 (會再次呼叫 stop())
     motor.begin();
     Serial.println(F("[OK] Motor driver initialized"));
 
@@ -170,10 +310,18 @@ void setup() {
     Serial.println(F("Ready for commands from Raspberry Pi"));
     Serial.println(F("========================================="));
     Serial.println();
+
+    // 啟用 Watchdog Timer (2 秒超時)
+    // 如果 loop() 卡住超過 2 秒，Arduino 會自動重置
+    wdt_enable(WDTO_2S);
+    Serial.println(F("[OK] Watchdog timer enabled (2s)"));
 }
 
 // ==================== Main Loop 函數 ====================
 void loop() {
+    // !! 餵狗: 每次 loop 都要餵，否則 2 秒後會重置
+    wdt_reset();
+
     // 1. 處理來自 Pi 的指令
     serialHandler.process();
 
@@ -194,8 +342,22 @@ void loop() {
             imu.update();
             lastImuUpdate = currentTime;
         }
-        yaw = imu.getYaw();
-        currentImuValid = true;
+
+        // 檢查 IMU 健康狀態 (EMI 可能導致 I2C 錯誤)
+        if (imu.isHealthy()) {
+            yaw = imu.getYaw();
+            currentImuValid = true;
+        } else {
+            // IMU 失效，讓 WallFollower 自動降級到 Bang-Bang 控制
+            // 不停車，繼續用超聲波沿牆
+            currentImuValid = false;
+            // 僅首次失效時警告
+            static bool imuWarnPrinted = false;
+            if (!imuWarnPrinted) {
+                Serial.println(F("[WARN] IMU failed, degraded to ultrasonic-only mode"));
+                imuWarnPrinted = true;
+            }
+        }
     }
     #endif
 

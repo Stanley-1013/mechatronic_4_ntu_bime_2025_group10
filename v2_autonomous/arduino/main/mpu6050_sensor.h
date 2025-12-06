@@ -97,6 +97,18 @@ public:
      */
     bool isInitialized() const { return _initialized; }
 
+    /**
+     * @brief 取得連續錯誤計數
+     * @return 連續 I2C 錯誤次數 (成功讀取時歸零)
+     */
+    uint8_t getErrorCount() const { return _errorCount; }
+
+    /**
+     * @brief 檢查 IMU 是否正常運作
+     * @return true = 正常, false = 連續錯誤過多
+     */
+    bool isHealthy() const { return _errorCount < 10; }
+
 private:
     // MPU6050 I2C 位址
     static const uint8_t MPU_ADDR = 0x68;
@@ -120,6 +132,7 @@ private:
 
     // 狀態
     bool _initialized;
+    uint8_t _errorCount;  // I2C 連續錯誤計數
 
     // 內部函數
     void readRawData();
