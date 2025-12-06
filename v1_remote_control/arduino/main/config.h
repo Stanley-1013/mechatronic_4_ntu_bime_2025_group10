@@ -19,19 +19,14 @@
 #define PIN_IN3 9   // 右輪方向 A
 #define PIN_IN4 10  // 右輪方向 B
 
-// 超聲波感測器 (前方 + 右側，用於沿右牆行駛)
-#define PIN_US_FRONT_TRIG  7   // 前方 Trig (偵測前方牆壁，轉彎用)
-#define PIN_US_FRONT_ECHO  8   // 前方 Echo
-#define PIN_US_RIGHT_TRIG  A1  // 右側 Trig (偵測右側牆壁，沿牆用)
-#define PIN_US_RIGHT_ECHO  A2  // 右側 Echo
+// 超聲波感測器
+#define PIN_US_LEFT_TRIG  7   // 左側 Trig
+#define PIN_US_LEFT_ECHO  8   // 左側 Echo
+#define PIN_US_RIGHT_TRIG A1  // 右側 Trig
+#define PIN_US_RIGHT_ECHO A2  // 右側 Echo
 
 // 吸塵器馬達 (Relay)
 #define PIN_VACUUM A3  // 吸塵器繼電器控制腳位 (改為 A3)
-
-// MPU6050 IMU (I2C)
-// A4 = SDA, A5 = SCL (Arduino Uno 預設 I2C 腳位，無需額外定義)
-#define MPU6050_ENABLED        // 啟用 MPU6050
-#define MPU6050_CALIBRATE_ON_BOOT  // 開機時自動校準
 
 // SoftwareSerial (與 Raspberry Pi 通訊)
 #define PIN_SERIAL_RX 4  // 接收 (連接 Pi TXD GPIO14)
@@ -53,11 +48,7 @@
 // ==================== 感測器參數 ====================
 #define ULTRASONIC_MIN_DISTANCE 2    // cm (最小有效距離)
 #define ULTRASONIC_MAX_DISTANCE 400  // cm (最大有效距離)
-#define ULTRASONIC_TIMEOUT 15000     // μs (逾時時間 = 15ms，減少阻塞)
-
-// MPU6050 參數
-#define IMU_UPDATE_INTERVAL 20       // ms (IMU 更新間隔 = 50Hz)
-#define IMU_CALIBRATION_SAMPLES 500  // 校準取樣次數
+#define ULTRASONIC_TIMEOUT 30000     // μs (逾時時間 = 30ms)
 
 // ==================== 安全參數 ====================
 // #define ENABLE_AUTO_RESET  // 啟用自動重置（10秒無指令時重置 Arduino）

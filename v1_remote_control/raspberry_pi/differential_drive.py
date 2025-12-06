@@ -22,8 +22,7 @@ class VehicleCommand:
             linear_velocity: 線性速度 (-1.0 ~ +1.0)
                            正值 = 前進，負值 = 後退
             angular_velocity: 角速度 (-1.0 ~ +1.0)
-                            正值 = 左轉（右輪快），負值 = 右轉（左輪快）
-                            公式: left = linear - angular, right = linear + angular
+                            正值 = 右轉，負值 = 左轉
             vacuum_motor: 吸塵器馬達狀態 (True/False)
         """
         self.linear_velocity = self._clamp(linear_velocity, -1.0, 1.0)
@@ -44,7 +43,7 @@ class VehicleCommand:
 class MotorCommand:
     """馬達控制指令（PWM 格式）"""
 
-    def __init__(self, left_pwm=0, right_pwm=0, vacuum=False, ultrasonic_enable=False):
+    def __init__(self, left_pwm=0, right_pwm=0, vacuum=False):
         """
         初始化馬達指令
 
@@ -52,46 +51,35 @@ class MotorCommand:
             left_pwm: 左輪 PWM (-255 ~ +255)
             right_pwm: 右輪 PWM (-255 ~ +255)
             vacuum: 吸塵器馬達狀態 (True/False)
-            ultrasonic_enable: 超聲波啟用狀態 (True/False)
         """
-        self.left_pwm = self._apply_deadzone(left_pwm)
-        self.right_pwm = self._apply_deadzone(right_pwm)
+        self.left_pwm = self._clamp(left_pwm, config.MIN_PWM_VALUE, config.MAX_PWM_VALUE)
+        self.right_pwm = self._clamp(right_pwm, config.MIN_PWM_VALUE, config.MAX_PWM_VALUE)
         self.vacuum = vacuum
-        self.ultrasonic_enable = ultrasonic_enable
 
     @staticmethod
-    def _apply_deadzone(pwm):
-        """套用死區保護：低於最小有效值的 PWM 提升到最小值，避免馬達不動"""
-        pwm = int(max(config.MIN_PWM_VALUE, min(config.MAX_PWM_VALUE, pwm)))
-        # 如果 PWM 在死區內（太小無法驅動馬達），提升到最小有效值
-        if 0 < pwm < config.MIN_EFFECTIVE_PWM:
-            return config.MIN_EFFECTIVE_PWM
-        elif -config.MIN_EFFECTIVE_PWM < pwm < 0:
-            return -config.MIN_EFFECTIVE_PWM
-        return pwm
+    def _clamp(value, min_val, max_val):
+        """限制數值範圍"""
+        return int(max(min_val, min(max_val, value)))
 
     def __repr__(self):
         return (f"MotorCommand(left={self.left_pwm:+4d}, "
                 f"right={self.right_pwm:+4d}, "
-                f"vacuum={self.vacuum}, "
-                f"ultrasonic={self.ultrasonic_enable})")
+                f"vacuum={self.vacuum})")
 
 
 class DifferentialDrive:
     """差動驅動控制器"""
 
-    def __init__(self, left_scale=None, right_scale=None, ultrasonic_enable=False):
+    def __init__(self, left_scale=None, right_scale=None):
         """
         初始化差動驅動控制器
 
         Args:
             left_scale: 左輪速度校準係數（預設從 config 讀取）
             right_scale: 右輪速度校準係數（預設從 config 讀取）
-            ultrasonic_enable: 超聲波啟用狀態（自走模式啟用，遙控模式停用）
         """
         self.left_scale = left_scale if left_scale is not None else config.MOTOR_LEFT_SCALE
         self.right_scale = right_scale if right_scale is not None else config.MOTOR_RIGHT_SCALE
-        self.ultrasonic_enable = ultrasonic_enable
 
     def convert(self, vehicle_cmd: VehicleCommand) -> MotorCommand:
         """
@@ -129,8 +117,7 @@ class DifferentialDrive:
         motor_cmd = MotorCommand(
             left_pwm=left_pwm,
             right_pwm=right_pwm,
-            vacuum=vehicle_cmd.vacuum_motor,
-            ultrasonic_enable=self.ultrasonic_enable
+            vacuum=vehicle_cmd.vacuum_motor
         )
 
         return motor_cmd

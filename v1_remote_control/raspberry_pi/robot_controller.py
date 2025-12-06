@@ -125,7 +125,7 @@ class RobotController:
             f"[{elapsed:6.1f}s] "
             f"Joy(L:{vehicle_cmd.linear_velocity:+.2f} A:{vehicle_cmd.angular_velocity:+.2f}) "
             f"| PWM(L:{motor_cmd.left_pwm:+4d} R:{motor_cmd.right_pwm:+4d}) "
-            f"| Dist(F:{sensor_data.front_distance:3d}cm R:{sensor_data.right_distance:3d}cm) "
+            f"| Dist(L:{sensor_data.left_distance:3d}cm R:{sensor_data.right_distance:3d}cm) "
             f"| Vac:{'ON ' if motor_cmd.vacuum else 'OFF'}"
         )
 

@@ -1,15 +1,11 @@
 #!/usr/bin/env python3
 """
 arduino_controller.py - Arduino Serial 通訊控制器
-版本: 2.0 (新增 IMU 資料)
-日期: 2025-11-29
+版本: 1.0
+日期: 2025-10-31
 
 負責與 Arduino 進行 Serial 通訊，發送馬達指令並接收感測器資料。
 參考: 04_ICD_介面規格.md - 2. Serial 通訊介面
-
-v2.0 變更:
-  - 感測器封包從 8 bytes 擴充為 12 bytes
-  - 新增 IMU 資料 (Yaw 角度、Z軸角速度)
 """
 
 import serial
@@ -19,52 +15,36 @@ from differential_drive import MotorCommand
 
 
 class SensorData:
-    """感測器資料 (v2.0 - 含 IMU)"""
+    """感測器資料"""
 
-    def __init__(self, front_distance=999, right_distance=999,
-                 yaw=0.0, gyro_z=0.0, status=0):
+    def __init__(self, left_distance=999, right_distance=999, status=0):
         """
         初始化感測器資料
 
         Args:
-            front_distance: 前方距離 (cm)
+            left_distance: 左側距離 (cm)
             right_distance: 右側距離 (cm)
-            yaw: Yaw 角度 (度, -180 ~ +180)
-            gyro_z: Z軸角速度 (deg/s)
             status: 狀態旗標
         """
-        self.front_distance = front_distance
+        self.left_distance = left_distance
         self.right_distance = right_distance
-        self.yaw = yaw
-        self.gyro_z = gyro_z
         self.status = status
         self.timestamp = time.time()
 
     @property
-    def front_valid(self):
-        """前方感測器資料是否有效"""
-        return (self.status & 0x01) != 0 and self.front_distance != 999
+    def left_valid(self):
+        """左側感測器資料是否有效"""
+        return (self.status & 0x01) != 0 and self.left_distance != 999
 
     @property
     def right_valid(self):
         """右側感測器資料是否有效"""
         return (self.status & 0x02) != 0 and self.right_distance != 999
 
-    @property
-    def imu_valid(self):
-        """IMU 資料是否有效"""
-        return (self.status & 0x04) != 0
-
-    @property
-    def vacuum_on(self):
-        """吸塵器是否開啟"""
-        return (self.status & 0x08) != 0
-
     def __repr__(self):
-        front_str = f"{self.front_distance:3d}cm {'✓' if self.front_valid else '✗'}"
+        left_str = f"{self.left_distance:3d}cm {'✓' if self.left_valid else '✗'}"
         right_str = f"{self.right_distance:3d}cm {'✓' if self.right_valid else '✗'}"
-        imu_str = f"Yaw:{self.yaw:+6.1f}° Gz:{self.gyro_z:+5.1f}°/s" if self.imu_valid else "IMU:N/A"
-        return f"SensorData(front={front_str}, right={right_str}, {imu_str})"
+        return f"SensorData(left={left_str}, right={right_str})"
 
 
 class ArduinoController:
@@ -109,7 +89,7 @@ class ArduinoController:
                 parity=serial.PARITY_NONE,
                 stopbits=serial.STOPBITS_ONE,
                 timeout=self.timeout,
-                write_timeout=1.0  # 寫入逾時設長一點，避免 buffer 滿時報錯
+                write_timeout=self.timeout  # 加入寫入逾時，避免阻塞
             )
 
             # 等待 Arduino 重置（開啟 Serial 會觸發 Arduino 重置）
@@ -154,7 +134,7 @@ class ArduinoController:
             Byte 0: Header (0xAA)
             Byte 1-2: Left PWM (int16, little-endian)
             Byte 3-4: Right PWM (int16, little-endian)
-            Byte 5: Flags (bit0=vacuum, bit1=ultrasonic_enable)
+            Byte 5: Flags (bit0=vacuum)
             Byte 6: Checksum (XOR of bytes 1-5)
             Byte 7: Footer (0x55)
 
@@ -181,12 +161,8 @@ class ArduinoController:
         packet[3] = right_pwm & 0xFF
         packet[4] = (right_pwm >> 8) & 0xFF
 
-        # Byte 5: Flags (bit0=vacuum, bit1=ultrasonic_enable)
-        flags = 0x00
-        if motor_cmd.vacuum:
-            flags |= 0x01
-        if motor_cmd.ultrasonic_enable:
-            flags |= 0x02
+        # Byte 5: Flags
+        flags = 0x01 if motor_cmd.vacuum else 0x00
         packet[5] = flags
 
         # Byte 6: Checksum (XOR of bytes 1-5)
@@ -205,46 +181,23 @@ class ArduinoController:
             SensorData 物件（若無新資料則返回最新快取）
 
         參考: 04_ICD_介面規格.md - 2.3 Arduino → Pi 感測器封包
-
-        v2.0: 封包大小從 8 bytes 變更為 12 bytes
         """
         try:
-            # 封包同步：跳過非 Header 的資料（處理 Arduino 開機訊息干擾）
-            sync_attempts = 0
-            max_sync_attempts = 50  # 最多跳過 50 bytes
+            # 檢查是否有資料可讀
+            if self.serial.in_waiting >= config.PACKET_SENSOR_SIZE:
+                packet = self.serial.read(config.PACKET_SENSOR_SIZE)
 
-            while self.serial.in_waiting > 0 and sync_attempts < max_sync_attempts:
-                # 偷看第一個 byte
-                peek = self.serial.read(1)
-                if len(peek) == 0:
-                    break
+                if config.VERBOSE_SERIAL:
+                    print(f"[RX] {packet.hex(' ')}")
 
-                if peek[0] == config.PACKET_SENSOR_HEADER:
-                    # 找到 Header，讀取剩餘封包
-                    if self.serial.in_waiting >= config.PACKET_SENSOR_SIZE - 1:
-                        rest = self.serial.read(config.PACKET_SENSOR_SIZE - 1)
-                        packet = peek + rest
+                # 解析封包
+                sensor_data = self._parse_sensor_packet(packet)
 
-                        if config.VERBOSE_SERIAL:
-                            print(f"[RX] {packet.hex(' ')}")
-
-                        # 解析封包 (v2.0)
-                        sensor_data = self._parse_sensor_packet_v2(packet)
-
-                        if sensor_data is not None:
-                            self.latest_sensor_data = sensor_data
-                            self.stats['rx_packets'] += 1
-                            break
-                        else:
-                            self.stats['rx_errors'] += 1
-                    else:
-                        # 資料不足，把 Header 放回去（實際上做不到，下次再試）
-                        break
+                if sensor_data is not None:
+                    self.latest_sensor_data = sensor_data
+                    self.stats['rx_packets'] += 1
                 else:
-                    # 跳過非 Header byte
-                    sync_attempts += 1
-                    if config.DEBUG_MODE and sync_attempts == 1:
-                        print(f"[SYNC] 跳過干擾資料...")
+                    self.stats['rx_errors'] += 1
 
         except serial.SerialException as e:
             self.stats['rx_errors'] += 1
@@ -252,82 +205,13 @@ class ArduinoController:
 
         return self.latest_sensor_data
 
-    def _parse_sensor_packet_v2(self, packet: bytes) -> SensorData:
-        """
-        解析感測器封包 v2.0 (含 IMU)
-
-        封包格式 (12 bytes):
-            Byte 0: Header (0xBB)
-            Byte 1-2: Front Distance (uint16, little-endian, cm)
-            Byte 3-4: Right Distance (uint16, little-endian, cm)
-            Byte 5-6: Yaw Angle (int16, little-endian, 度數 × 10)
-            Byte 7: Gyro Z (int8, deg/s)
-            Byte 8: Status (bit0=front_valid, bit1=right_valid, bit2=imu_valid, bit3=vacuum)
-            Byte 9: Reserved
-            Byte 10: Checksum (XOR of bytes 1-9)
-            Byte 11: Footer (0x66)
-
-        Args:
-            packet: 12-byte 封包
-
-        Returns:
-            SensorData 物件，若封包無效則返回 None
-        """
-        # 驗證長度
-        if len(packet) != 12:
-            if config.DEBUG_MODE:
-                print(f"❌ 封包長度錯誤: {len(packet)} (expected 12)")
-            return None
-
-        # 驗證 Header
-        if packet[0] != config.PACKET_SENSOR_HEADER:
-            if config.DEBUG_MODE:
-                print(f"❌ Header 錯誤: {packet[0]:02X} (expected {config.PACKET_SENSOR_HEADER:02X})")
-            return None
-
-        # 驗證 Footer
-        if packet[11] != config.PACKET_SENSOR_FOOTER:
-            if config.DEBUG_MODE:
-                print(f"❌ Footer 錯誤: {packet[11]:02X} (expected {config.PACKET_SENSOR_FOOTER:02X})")
-            return None
-
-        # 驗證 Checksum (XOR of bytes 1-9)
-        checksum = 0
-        for i in range(1, 10):
-            checksum ^= packet[i]
-        if checksum != packet[10]:
-            self.stats['checksum_errors'] += 1
-            if config.DEBUG_MODE:
-                print(f"❌ Checksum 錯誤: {packet[10]:02X} (expected {checksum:02X})")
-            return None
-
-        # 解析資料
-        front_distance = packet[1] | (packet[2] << 8)
-        right_distance = packet[3] | (packet[4] << 8)
-
-        # Yaw: int16, 度數 × 10
-        yaw_raw = packet[5] | (packet[6] << 8)
-        # 處理負數 (2's complement)
-        if yaw_raw > 32767:
-            yaw_raw -= 65536
-        yaw = yaw_raw / 10.0
-
-        # Gyro Z: int8
-        gyro_z = packet[7]
-        if gyro_z > 127:
-            gyro_z -= 256
-
-        status = packet[8]
-
-        return SensorData(front_distance, right_distance, yaw, gyro_z, status)
-
     def _parse_sensor_packet(self, packet: bytes) -> SensorData:
         """
-        解析感測器封包 v1.0 (向下相容，無 IMU)
+        解析感測器封包
 
-        封包格式 (8 bytes):
+        封包格式:
             Byte 0: Header (0xBB)
-            Byte 1-2: Front Distance (uint16, little-endian)
+            Byte 1-2: Left Distance (uint16, little-endian)
             Byte 3-4: Right Distance (uint16, little-endian)
             Byte 5: Status
             Byte 6: Checksum (XOR of bytes 1-5)
@@ -339,7 +223,7 @@ class ArduinoController:
         Returns:
             SensorData 物件，若封包無效則返回 None
 
-        @deprecated 請使用 _parse_sensor_packet_v2
+        參考: 04_ICD_介面規格.md - 2.3.1
         """
         # 驗證長度
         if len(packet) != 8:
@@ -365,12 +249,12 @@ class ArduinoController:
                 print(f"❌ Checksum 錯誤: {packet[6]:02X} (expected {checksum:02X})")
             return None
 
-        # 解析資料 (封包格式: front, right)
-        front_distance = packet[1] | (packet[2] << 8)
+        # 解析資料
+        left_distance = packet[1] | (packet[2] << 8)
         right_distance = packet[3] | (packet[4] << 8)
         status = packet[5]
 
-        return SensorData(front_distance, right_distance, 0.0, 0.0, status)
+        return SensorData(left_distance, right_distance, status)
 
     def get_stats(self):
         """取得通訊統計資訊"""
