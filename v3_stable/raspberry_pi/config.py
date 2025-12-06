@@ -1,0 +1,27 @@
+# config.py - V3 Raspberry Pi 設定
+
+# Serial 通訊
+SERIAL_PORT = '/dev/ttyACM1'  # Arduino Uno/Mega 原生 USB
+BAUD_RATE = 115200
+
+# 紅色偵測
+CAMERA_WIDTH = 320
+CAMERA_HEIGHT = 240
+CAMERA_FPS = 30
+DETECTION_FPS = 10
+
+# HSV 紅色範圍
+RED_LOWER1 = (0, 100, 100)
+RED_UPPER1 = (10, 255, 255)
+RED_LOWER2 = (160, 100, 100)
+RED_UPPER2 = (180, 255, 255)
+
+# 偵測閾值
+MIN_RED_AREA = 1000
+RED_CLEAR_DELAY = 1.0  # 紅色消失後延遲 (秒)
+
+# 指令代碼
+CMD_VACUUM_ON = 0x01
+CMD_VACUUM_OFF = 0x02
+PKT_HEADER = 0xAA
+PKT_FOOTER = 0x55
