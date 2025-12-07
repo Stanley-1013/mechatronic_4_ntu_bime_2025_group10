@@ -1,7 +1,7 @@
 # config.py - V3 Raspberry Pi 設定
 
 # Serial 通訊
-SERIAL_PORT = '/dev/ttyACM1'  # Arduino Uno/Mega 原生 USB
+SERIAL_PORT = '/dev/ttyACM0'  # Arduino Uno/Mega 原生 USB
 BAUD_RATE = 115200
 
 # 紅色偵測

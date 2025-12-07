@@ -45,6 +45,15 @@ class V3Controller:
     def _main_loop(self):
         """主迴圈"""
         while self.running:
+            # 讀取並顯示 Arduino 除錯訊息
+            if self.serial.ser and self.serial.ser.in_waiting > 0:
+                try:
+                    line = self.serial.ser.readline().decode('utf-8', errors='ignore').strip()
+                    if line:
+                        print(f"[Arduino] {line}")
+                except:
+                    pass
+
             detected, area = self.detector.get_status()
 
             # 紅色狀態變化處理

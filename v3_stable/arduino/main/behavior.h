@@ -1,12 +1,13 @@
 // behavior.h - 行為控制模組 (距離+角度 PD 控制)
-// 版本: 3.0
-// 日期: 2025-12-07
+// 版本: 3.5
+// 日期: 2025-12-08
 
 #ifndef BEHAVIOR_H
 #define BEHAVIOR_H
 
 #include <avr/wdt.h>
 #include "ultrasonic.h"  // for SensorData
+#include "mpu6050_sensor.h"  // for IMU
 #include "config.h"
 
 struct MotorCommand {
@@ -17,7 +18,7 @@ struct MotorCommand {
 
 class BehaviorController {
 public:
-    void init();
+    void init(MPU6050Sensor* imu);  // 傳入 IMU 指標
     MotorCommand update(const SensorData& sensor);
 
     bool isTurning() { return _isTurning; }
@@ -49,6 +50,10 @@ private:
 
     // 角落轉彎標記 (用於穩定期補償)
     bool _turnFromCorner;
+
+    // IMU 相關
+    MPU6050Sensor* _imu;
+    float _turnStartYaw;  // 轉彎開始時的 yaw
 };
 
 #endif

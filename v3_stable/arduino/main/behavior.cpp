@@ -1,10 +1,10 @@
 // behavior.cpp - 行為控制模組 (距離+角度 PD 控制)
-// 版本: 3.3
+// 版本: 3.5
 // 日期: 2025-12-08
 //
 // 核心邏輯：
 // 1. 沿牆：距離 P + 角度 PD 控制
-// 2. 轉彎：最少 400ms + 前方暢通 → 退出
+// 2. 轉彎：IMU 判斷轉過 85~90 度 + 前方暢通 → 退出
 // 3. 找牆：使用連續函數 (軟閾值) 避免邊界抖動
 //
 // v2.8: 修正角度計算符號 (後-前)
@@ -22,12 +22,21 @@
 //   - rightAvg <10cm 時漸進加強 distTerm（緊急距離保護）
 // v3.3: 兩項修正
 //   - rfDistAngular 線性→拋物線（0.0015*x²，更強的近距離修正）
-//   - 角落轉彎補償：rightFront<20 進入轉彎時標記，穩定期加右弧
+//   - 角落轉彎補償暫時停用
+// v3.4: IMU 轉彎判定
+//   - 左轉時用 IMU 判斷角度，轉過 85~90 度 + 前方暢通即退出
+// v3.5: IMU 修正
+//   - 改為轉彎時才讀 IMU（resetYaw 歸零 + 轉彎中呼叫 update）
+//   - 非轉彎時不更新 IMU，避免積分誤差累積
+// v3.6: IMU 獨立更新
+//   - main.ino 50Hz 更新 IMU，behavior 只讀值
+//   - 轉彎開始時 resetYaw() 歸零
 
 #include "behavior.h"
 #include <Arduino.h>
 
-void BehaviorController::init() {
+void BehaviorController::init(MPU6050Sensor* imu) {
+    _imu = imu;
     _isTurning = false;
     _turnTimer = 0;
     _stableTimer = 0;
@@ -37,6 +46,7 @@ void BehaviorController::init() {
     _frontTriggerCount = 0;
     _lastAngle = 0.0f;
     _turnFromCorner = false;
+    _turnStartYaw = 0.0f;
 
     wdt_enable(WDTO_2S);
 }
@@ -62,10 +72,10 @@ MotorCommand BehaviorController::update(const SensorData& sensor) {
         float angular = 0;
         if (sensor.rightValid) {
             angular = KP_ANGLE * sensor.angle * 0.5f;  // 半強度角度修正
-            // v3.3: 角落轉彎後加右弧補償（模擬無牆情況的 noWallAngular）
-            if (_turnFromCorner) {
-                angular -= SEARCH_ANGULAR;  // 負 = 右轉靠近牆
-            }
+            // v3.3: 角落轉彎補償暫時停用測試
+            // if (_turnFromCorner) {
+            //     angular -= SEARCH_ANGULAR;  // 負 = 右轉靠近牆
+            // }
         }
         if (angular > 0.15f) angular = 0.15f;
         if (angular < -0.15f) angular = -0.15f;
@@ -91,15 +101,21 @@ MotorCommand BehaviorController::update(const SensorData& sensor) {
     return _handleWallFollow(sensor);
 }
 
-// ===== 轉彎控制 =====
+// ===== 轉彎控制 (v3.5: 轉彎時才更新 IMU) =====
 MotorCommand BehaviorController::_handleTurning(const SensorData& sensor) {
     if (!_isTurning) {
         _isTurning = true;
         _turnTimer = 0;
         _turnFromCorner = (sensor.rightFront < 20);  // 右前 <20cm = 角落
+        // v3.5: 重置 yaw 為 0，之後 getYaw() 直接就是已轉角度
+        if (_imu != nullptr) {
+            _imu->resetYaw();  // 同時重置時間戳
+        }
     }
 
     _turnTimer++;
+
+    // v3.6: IMU 由 main.ino 獨立 50Hz 更新，這裡只讀值
 
     // 超時保護
     if (_turnTimer > TURN_TIMEOUT) {
@@ -108,15 +124,50 @@ MotorCommand BehaviorController::_handleTurning(const SensorData& sensor) {
         return _handleWallFollow(sensor);
     }
 
-    // 最少轉彎時間
+    // 最少轉彎時間 (300ms)
     if (_turnTimer < TURN_MIN_TIME) {
         return {-TURN_PWM, +TURN_PWM, false};
     }
 
-    // 轉彎完成條件（簡化版）：
-    // 1. 最少轉彎時間 400ms (8 個週期)
-    // 2. 前方暢通
-    if (_turnTimer >= 8 && sensor.front > TURN_FRONT_CLEAR) {
+    // v3.5: 直接取 yaw（已從 0 開始累積）
+    // 左轉時 yaw 會變成負值，取絕對值
+    float turnedAngle = 0;
+    if (_imu != nullptr) {
+        turnedAngle = -_imu->getYaw();  // 左轉 yaw 為負，取反得正值
+    }
+
+    // DEBUG: 每 10 個週期輸出一次
+    if (_turnTimer % 10 == 0) {
+        Serial.print("TURN: angle=");
+        Serial.print(turnedAngle);
+        Serial.print(" front=");
+        Serial.print(sensor.front);
+        Serial.print(" chk=");
+        Serial.println((turnedAngle >= 85.0f && sensor.front > TURN_FRONT_CLEAR) ? "Y" : "N");
+    }
+
+    // 轉彎完成條件：
+    // - 第一次檢查點在 85° (接近 90°)
+    // - 之後每 45° 檢查一次 (135°, 180°, ...)
+    // - 且前方暢通
+    bool atCheckpoint = false;
+    if (turnedAngle >= 85.0f) {
+        // 第一個檢查點
+        if (turnedAngle < 95.0f) {
+            atCheckpoint = true;
+        } else {
+            // 之後的檢查點：130±5, 175±5, 220±5...
+            float angleAfter90 = turnedAngle - 90.0f;
+            int stepNum = (int)(angleAfter90 / 45.0f);
+            float stepProgress = angleAfter90 - (stepNum * 45.0f);
+            // 在每個 45° 步的 35~45 度區間檢查 (即 85°, 130°, 175°...)
+            if (stepProgress >= 35.0f && stepProgress <= 50.0f) {
+                atCheckpoint = true;
+            }
+        }
+    }
+
+    if (atCheckpoint && sensor.front > TURN_FRONT_CLEAR) {
         _isTurning = false;
         _stableTimer = TURN_STABLE;
         return _handleWallFollow(sensor);

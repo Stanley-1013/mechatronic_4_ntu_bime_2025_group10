@@ -47,7 +47,7 @@
 #define FRONT_SLOW      30.0f   // 減速距離
 
 // 轉彎行為 (基於前方暢通 + 右側平行)
-#define TURN_FRONT_CLEAR    40.0f   // 轉彎完成：前方暢通
+#define TURN_FRONT_CLEAR    30.0f   // 轉彎完成：前方暢通 (原40，降低提早退出)
 #define TURN_RIGHT_MIN      10.0f   // 轉彎完成：右側最小
 #define TURN_RIGHT_MAX      40.0f   // 轉彎完成：右側最大
 #define TURN_ANGLE_TOL      10.0f   // 轉彎完成：角度容許誤差 (度)

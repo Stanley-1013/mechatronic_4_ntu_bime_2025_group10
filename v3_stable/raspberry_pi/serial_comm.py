@@ -26,6 +26,8 @@ class SerialComm:
 
         try:
             self.ser.write(packet)
+            self.ser.flush()  # 確保立即發送
+            print(f"[Serial TX] {packet.hex(' ')}")  # 除錯
             return True
         except Exception as e:
             print(f"發送失敗: {e}")
