@@ -52,8 +52,11 @@ class RedDetector:
             if not ret:
                 continue
 
+            # 高斯模糊減少雜訊
+            blur = cv2.GaussianBlur(frame, (7, 7), 0)
+
             # 轉換 HSV
-            hsv = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
+            hsv = cv2.cvtColor(blur, cv2.COLOR_BGR2HSV)
 
             # 紅色遮罩 (兩段)
             mask1 = cv2.inRange(hsv, RED_LOWER1, RED_UPPER1)

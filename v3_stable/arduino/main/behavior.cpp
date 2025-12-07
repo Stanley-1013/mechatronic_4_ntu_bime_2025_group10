@@ -13,6 +13,9 @@
 //   - 轉彎退出簡化為純時間制 + 前方暢通
 //   - 前方觸發需連續 2 次確認
 //   - 沿牆加入角度 D 項控制
+// v3.1: 兩項修正
+//   - 穩定期內重置 _frontTriggerCount（防止連續轉彎）
+//   - 右前 <15cm 漸進式左修正（防止斜向撞牆）
 
 #include "behavior.h"
 #include <Arduino.h>
@@ -46,6 +49,7 @@ MotorCommand BehaviorController::update(const SensorData& sensor) {
     // ===== 穩定期：轉彎後直走，不做大幅修正 =====
     if (_stableTimer > 0) {
         _stableTimer--;
+        _frontTriggerCount = 0;  // v3.1: 防止穩定期結束後立刻再轉彎
         // 穩定期只做輕微角度修正
         float angular = 0;
         if (sensor.rightValid) {
@@ -162,7 +166,7 @@ MotorCommand BehaviorController::_handleWallFollow(const SensorData& sensor) {
         }
         float trendAngular = trendStrength * 0.08f;
 
-        // 加上基於距離的修正：右前太近也要左修正
+        // 基於距離的修正：右前太近也要左修正
         float distAngular = (sensor.rightFront < 20) ? 0.05f : 0;
 
         float wallFoundAngular = wallFoundWeight * (trendAngular + distAngular);
@@ -171,8 +175,19 @@ MotorCommand BehaviorController::_handleWallFollow(const SensorData& sensor) {
         float noWallWeight = (1.0f - rfNear) * (1.0f - rrNear);
         float noWallAngular = noWallWeight * (-SEARCH_ANGULAR);  // 負=右轉
 
+        // v3.1: 右前距離保護（15cm 內啟動，越近越強的左修正）
+        float rfDistAngular = 0;
+        if (sensor.rightFront < 15) {
+            rfDistAngular = (15.0f - sensor.rightFront) * 0.01f;  // 線性
+            if (rfDistAngular > 0.15f) rfDistAngular = 0.15f;     // 限幅
+        }
+        // 效果：15cm→0, 10cm→0.05, 5cm→0.10, 2cm→0.13
+
+        // 右前近 + 右後遠 = 斜向靠近牆 → 左轉 (與 cornerWeight 對稱)
+        float approachAngular = wallFoundWeight * 0.12f;  // 正=左轉
+
         // 混合計算
-        angular = cornerWeight * (-0.12f) + wallFoundAngular + noWallAngular;
+        angular = cornerWeight * (-0.12f) + approachAngular + wallFoundAngular + noWallAngular + rfDistAngular;
 
         // 重置 D 項追蹤（無有效角度時）
         _lastAngle = 0.0f;
