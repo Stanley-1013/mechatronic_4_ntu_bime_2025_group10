@@ -31,6 +31,8 @@
 // v3.6: IMU 獨立更新
 //   - main.ino 50Hz 更新 IMU，behavior 只讀值
 //   - 轉彎開始時 resetYaw() 歸零
+// v3.7: IMU 前後差值
+//   - 不做 resetYaw()，記錄開始時的 yaw，計算差值
 
 #include "behavior.h"
 #include <Arduino.h>
@@ -101,21 +103,19 @@ MotorCommand BehaviorController::update(const SensorData& sensor) {
     return _handleWallFollow(sensor);
 }
 
-// ===== 轉彎控制 (v3.5: 轉彎時才更新 IMU) =====
+// ===== 轉彎控制 (v3.7: 只讀 IMU，計算前後差值) =====
 MotorCommand BehaviorController::_handleTurning(const SensorData& sensor) {
     if (!_isTurning) {
         _isTurning = true;
         _turnTimer = 0;
         _turnFromCorner = (sensor.rightFront < 20);  // 右前 <20cm = 角落
-        // v3.5: 重置 yaw 為 0，之後 getYaw() 直接就是已轉角度
+        // v3.7: 記錄轉彎開始時的 yaw，不做 reset
         if (_imu != nullptr) {
-            _imu->resetYaw();  // 同時重置時間戳
+            _turnStartYaw = _imu->getYaw();
         }
     }
 
     _turnTimer++;
-
-    // v3.6: IMU 由 main.ino 獨立 50Hz 更新，這裡只讀值
 
     // 超時保護
     if (_turnTimer > TURN_TIMEOUT) {
@@ -129,11 +129,16 @@ MotorCommand BehaviorController::_handleTurning(const SensorData& sensor) {
         return {-TURN_PWM, +TURN_PWM, false};
     }
 
-    // v3.5: 直接取 yaw（已從 0 開始累積）
-    // 左轉時 yaw 會變成負值，取絕對值
+    // v3.7: 計算前後差值（左轉 yaw 減少，所以 start - current = 正值）
     float turnedAngle = 0;
     if (_imu != nullptr) {
-        turnedAngle = -_imu->getYaw();  // 左轉 yaw 為負，取反得正值
+        float currentYaw = _imu->getYaw();
+        turnedAngle = _turnStartYaw - currentYaw;
+        // 處理跨越 ±180 的情況
+        if (turnedAngle < -180) turnedAngle += 360;
+        if (turnedAngle > 180) turnedAngle -= 360;
+        // 取絕對值（不管左轉右轉）
+        if (turnedAngle < 0) turnedAngle = -turnedAngle;
     }
 
     // DEBUG: 每 10 個週期輸出一次
