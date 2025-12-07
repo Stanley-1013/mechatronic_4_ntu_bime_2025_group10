@@ -122,6 +122,13 @@ MotorCommand BehaviorController::_handleWallFollow(const SensorData& sensor) {
         // 距離誤差：正=太近，需左轉遠離
         float distError = TARGET_DIST - sensor.rightAvg;
 
+        // v3.2: 緊急距離加強 - rightAvg < 10cm 時漸進加強 distTerm
+        float urgencyScale = 1.0f;
+        if (sensor.rightAvg < 10) {
+            urgencyScale = 1.0f + (10.0f - sensor.rightAvg) * 0.15f;
+            // 效果：10cm→1.0, 5cm→1.75, 2cm→2.2
+        }
+
         // 角度誤差：正=車頭朝牆，需左轉
         float angleError = sensor.angle - TARGET_ANGLE;
 
@@ -130,7 +137,7 @@ MotorCommand BehaviorController::_handleWallFollow(const SensorData& sensor) {
         _lastAngle = sensor.angle;
 
         // PD 控制
-        float distTerm = KP_DIST * distError;
+        float distTerm = KP_DIST * distError * urgencyScale;
         float angleTerm = KP_ANGLE * angleError + KD_ANGLE * angleDerivative;
 
         angular = distTerm + angleTerm;
