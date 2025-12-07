@@ -1,6 +1,6 @@
 // behavior.cpp - 行為控制模組 (距離+角度 PD 控制)
-// 版本: 3.0
-// 日期: 2025-12-07
+// 版本: 3.3
+// 日期: 2025-12-08
 //
 // 核心邏輯：
 // 1. 沿牆：距離 P + 角度 PD 控制
@@ -13,9 +13,16 @@
 //   - 轉彎退出簡化為純時間制 + 前方暢通
 //   - 前方觸發需連續 2 次確認
 //   - 沿牆加入角度 D 項控制
-// v3.1: 兩項修正
+// v3.1: 三項修正
 //   - 穩定期內重置 _frontTriggerCount（防止連續轉彎）
 //   - 右前 <15cm 漸進式左修正（防止斜向撞牆）
+//   - 新增 approachAngular 對稱左轉（右前近+右後遠）
+// v3.2: 兩項修正
+//   - KD_ANGLE 0.015→0.012 減少正常沿牆時的車頭晃動
+//   - rightAvg <10cm 時漸進加強 distTerm（緊急距離保護）
+// v3.3: 兩項修正
+//   - rfDistAngular 線性→拋物線（0.0015*x²，更強的近距離修正）
+//   - 角落轉彎補償：rightFront<20 進入轉彎時標記，穩定期加右弧
 
 #include "behavior.h"
 #include <Arduino.h>
@@ -29,6 +36,7 @@ void BehaviorController::init() {
     _lastRightFront = 50.0f;
     _frontTriggerCount = 0;
     _lastAngle = 0.0f;
+    _turnFromCorner = false;
 
     wdt_enable(WDTO_2S);
 }
@@ -54,6 +62,10 @@ MotorCommand BehaviorController::update(const SensorData& sensor) {
         float angular = 0;
         if (sensor.rightValid) {
             angular = KP_ANGLE * sensor.angle * 0.5f;  // 半強度角度修正
+            // v3.3: 角落轉彎後加右弧補償（模擬無牆情況的 noWallAngular）
+            if (_turnFromCorner) {
+                angular -= SEARCH_ANGULAR;  // 負 = 右轉靠近牆
+            }
         }
         if (angular > 0.15f) angular = 0.15f;
         if (angular < -0.15f) angular = -0.15f;
@@ -84,6 +96,7 @@ MotorCommand BehaviorController::_handleTurning(const SensorData& sensor) {
     if (!_isTurning) {
         _isTurning = true;
         _turnTimer = 0;
+        _turnFromCorner = (sensor.rightFront < 20);  // 右前 <20cm = 角落
     }
 
     _turnTimer++;
@@ -182,13 +195,14 @@ MotorCommand BehaviorController::_handleWallFollow(const SensorData& sensor) {
         float noWallWeight = (1.0f - rfNear) * (1.0f - rrNear);
         float noWallAngular = noWallWeight * (-SEARCH_ANGULAR);  // 負=右轉
 
-        // v3.1: 右前距離保護（15cm 內啟動，越近越強的左修正）
+        // v3.3: 右前距離保護（15cm 內啟動，拋物線：越近修正越強）
         float rfDistAngular = 0;
         if (sensor.rightFront < 15) {
-            rfDistAngular = (15.0f - sensor.rightFront) * 0.01f;  // 線性
-            if (rfDistAngular > 0.15f) rfDistAngular = 0.15f;     // 限幅
+            float x = 15.0f - sensor.rightFront;
+            rfDistAngular = 0.0015f * x * x;  // 二次函數
+            if (rfDistAngular > 0.20f) rfDistAngular = 0.20f;  // 限幅
         }
-        // 效果：15cm→0, 10cm→0.05, 5cm→0.10, 2cm→0.13
+        // 效果：15cm→0, 10cm→0.04, 7cm→0.10, 5cm→0.15, 2cm→0.20
 
         // 右前近 + 右後遠 = 斜向靠近牆 → 左轉 (與 cornerWeight 對稱)
         float approachAngular = wallFoundWeight * 0.12f;  // 正=左轉

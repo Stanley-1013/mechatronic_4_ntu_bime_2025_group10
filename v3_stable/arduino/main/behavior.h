@@ -46,6 +46,9 @@ private:
 
     // 角度 D 項追蹤 (用於 PD 控制)
     float _lastAngle;
+
+    // 角落轉彎標記 (用於穩定期補償)
+    bool _turnFromCorner;
 };
 
 #endif
