@@ -1,14 +1,18 @@
-// behavior.cpp - 行為控制模組 (距離+角度雙控制)
-// 版本: 2.9
+// behavior.cpp - 行為控制模組 (距離+角度 PD 控制)
+// 版本: 3.0
 // 日期: 2025-12-07
 //
 // 核心邏輯：
-// 1. 沿牆：距離誤差 + 角度誤差 → 雙 P 控制
-// 2. 轉彎：前方暢通 + 與新牆平行 → 完成（無牆時 400ms 退出）
+// 1. 沿牆：距離 P + 角度 PD 控制
+// 2. 轉彎：最少 400ms + 前方暢通 → 退出
 // 3. 找牆：使用連續函數 (軟閾值) 避免邊界抖動
 //
-// v2.8: 修正 ultrasonic.cpp 角度計算符號 (後-前 而非 前-後)
-// v2.9: 根據實測調整無牆轉彎時間 600ms→400ms (實測角速度~225°/s)
+// v2.8: 修正角度計算符號 (後-前)
+// v2.9: 調整無牆轉彎時間 600ms→400ms
+// v3.0: 三項修正
+//   - 轉彎退出簡化為純時間制 + 前方暢通
+//   - 前方觸發需連續 2 次確認
+//   - 沿牆加入角度 D 項控制
 
 #include "behavior.h"
 #include <Arduino.h>
@@ -19,7 +23,9 @@ void BehaviorController::init() {
     _stableTimer = 0;
     _complete = false;
     _startTime = millis();
-    _lastRightFront = 50.0f;  // 初始假設較遠
+    _lastRightFront = 50.0f;
+    _frontTriggerCount = 0;
+    _lastAngle = 0.0f;
 
     wdt_enable(WDTO_2S);
 }
@@ -43,7 +49,7 @@ MotorCommand BehaviorController::update(const SensorData& sensor) {
         // 穩定期只做輕微角度修正
         float angular = 0;
         if (sensor.rightValid) {
-            angular = KP_ANGLE * sensor.angle * 0.5f;  // 半強度角度修正 (與主邏輯一致)
+            angular = KP_ANGLE * sensor.angle * 0.5f;  // 半強度角度修正
         }
         if (angular > 0.15f) angular = 0.15f;
         if (angular < -0.15f) angular = -0.15f;
@@ -54,7 +60,14 @@ MotorCommand BehaviorController::update(const SensorData& sensor) {
     }
 
     // ===== 優先級 1: 角落轉彎 =====
-    if (_isTurning || sensor.front <= FRONT_STOP) {
+    // 前方觸發連續確認 (防止雜訊誤觸發)
+    if (sensor.front <= FRONT_STOP) {
+        _frontTriggerCount++;
+    } else {
+        _frontTriggerCount = 0;
+    }
+
+    if (_isTurning || _frontTriggerCount >= 2) {
         return _handleTurning(sensor);
     }
 
@@ -83,33 +96,10 @@ MotorCommand BehaviorController::_handleTurning(const SensorData& sensor) {
         return {-TURN_PWM, +TURN_PWM, false};
     }
 
-    // 轉彎完成條件：
-    // 1. 前方暢通
-    // 2. 右側在合理範圍（或無效時前方暢通即可）
-    // 3. 角度接近 0 (與新牆平行)
-    bool frontClear = (sensor.front > TURN_FRONT_CLEAR);
-
-    // 右側條件：有效時檢查範圍，無效時放寬（只要前方暢通）
-    bool rightOK = false;
-    if (sensor.rightValid) {
-        rightOK = (sensor.rightAvg > TURN_RIGHT_MIN &&
-                   sensor.rightAvg < TURN_RIGHT_MAX);
-    } else {
-        // 無有效右牆時，前方暢通 + 最少轉彎時間後可退出
-        rightOK = (_turnTimer > 8);  // 400ms 後可考慮退出
-    }
-
-    // 平行檢查：
-    // - 有效時：檢查角度
-    // - 無效時：根據實測（1秒轉180-270°），400ms約轉90°
-    bool aligned = false;
-    if (sensor.rightValid) {
-        aligned = (abs(sensor.angle) < TURN_ANGLE_TOL);
-    } else {
-        aligned = (_turnTimer > 8);  // 400ms 約轉 90° (實測角速度 ~225°/s)
-    }
-
-    if (frontClear && rightOK && aligned) {
+    // 轉彎完成條件（簡化版）：
+    // 1. 最少轉彎時間 400ms (8 個週期)
+    // 2. 前方暢通
+    if (_turnTimer >= 8 && sensor.front > TURN_FRONT_CLEAR) {
         _isTurning = false;
         _stableTimer = TURN_STABLE;
         return _handleWallFollow(sensor);
@@ -119,27 +109,26 @@ MotorCommand BehaviorController::_handleTurning(const SensorData& sensor) {
     return {-TURN_PWM, +TURN_PWM, false};
 }
 
-// ===== 沿牆控制 (距離+角度雙 P 控制) =====
+// ===== 沿牆控制 (距離+角度 PD 控制) =====
 MotorCommand BehaviorController::_handleWallFollow(const SensorData& sensor) {
     float angular = 0;
 
     if (sensor.rightValid) {
-        // ===== 距離 + 角度雙控制 =====
+        // ===== 距離 + 角度 PD 控制 =====
         // 距離誤差：正=太近，需左轉遠離
-        // rightAvg 越大 = 離牆越遠，所以用 TARGET - rightAvg
         float distError = TARGET_DIST - sensor.rightAvg;
 
         // 角度誤差：正=車頭朝牆，需左轉
-        // (sensor.angle 正=車頭朝牆，TARGET_ANGLE=0)
         float angleError = sensor.angle - TARGET_ANGLE;
 
-        // P 控制
-        float distTerm = KP_DIST * distError;
-        float angleTerm = KP_ANGLE * angleError;
+        // 角度變化率 (D 項)：正=角度增加中(越來越朝牆)，需加強左轉
+        float angleDerivative = sensor.angle - _lastAngle;
+        _lastAngle = sensor.angle;
 
-        // 標準雙 P 控制
-        // 角度定義已修正：正角度=車頭朝牆，負角度=車尾朝牆
-        // angleTerm 正=左轉，負=右轉，與預期一致
+        // PD 控制
+        float distTerm = KP_DIST * distError;
+        float angleTerm = KP_ANGLE * angleError + KD_ANGLE * angleDerivative;
+
         angular = distTerm + angleTerm;
 
     } else {
@@ -150,9 +139,8 @@ MotorCommand BehaviorController::_handleWallFollow(const SensorData& sensor) {
         // 使用 sigmoid-like 軟閾值：30cm 以下為「近」
         float rfNear = _softThreshold(sensor.rightFront, 30, 10);  // 30±10cm 過渡
         float rrNear = _softThreshold(sensor.rightRear, 30, 10);
-        float frontClear = 1.0f - _softThreshold(sensor.front, FRONT_SLOW, 10);
 
-        // 右前遠 + 右後近 = 轉角/出口 → 右轉 (angular 負)
+        // 右前遠 + 右後近 = 轉角/出口 → 右轉進入 (angular 負)
         float cornerWeight = (1.0f - rfNear) * rrNear;
 
         // 右前近 + 右後遠 = 發現牆前端 (正在接近新牆 or 入場)
@@ -162,9 +150,6 @@ MotorCommand BehaviorController::_handleWallFollow(const SensorData& sensor) {
         float rfTrend = _lastRightFront - sensor.rightFront;  // 變小=接近
 
         // 發現牆時：依趨勢決定 (使用軟閾值避免抖動)
-        // - 接近牆 (rfTrend > 0)：左修正避免撞牆
-        // - 遠離牆 (rfTrend < 0)：右修正靠近牆
-        // 閾值 2cm 考慮超音波雜訊，1-3cm 為過渡區
         float trendStrength = 0;
         if (rfTrend > 3.0f) {
             trendStrength = 1.0f;  // 明確接近
@@ -182,12 +167,15 @@ MotorCommand BehaviorController::_handleWallFollow(const SensorData& sensor) {
 
         float wallFoundAngular = wallFoundWeight * (trendAngular + distAngular);
 
-        // 完全無牆：輕微右弧線
+        // 完全無牆（右前遠 + 右後遠）：輕微右轉找牆
         float noWallWeight = (1.0f - rfNear) * (1.0f - rrNear);
-        float noWallAngular = noWallWeight * (-SEARCH_ANGULAR);
+        float noWallAngular = noWallWeight * (-SEARCH_ANGULAR);  // 負=右轉
 
         // 混合計算
         angular = cornerWeight * (-0.12f) + wallFoundAngular + noWallAngular;
+
+        // 重置 D 項追蹤（無有效角度時）
+        _lastAngle = 0.0f;
     }
 
     // 更新趨勢追蹤（每週期都更新，確保切換時有正確的歷史值）

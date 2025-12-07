@@ -1,5 +1,5 @@
-// behavior.h - 行為控制模組 (距離+角度雙控制)
-// 版本: 2.0
+// behavior.h - 行為控制模組 (距離+角度 PD 控制)
+// 版本: 3.0
 // 日期: 2025-12-07
 
 #ifndef BEHAVIOR_H
@@ -40,6 +40,12 @@ private:
 
     // 右前趨勢追蹤 (用於 rightValid=false 時判斷接近/遠離)
     float _lastRightFront;
+
+    // 前方觸發連續確認 (防止雜訊誤觸發)
+    int _frontTriggerCount;
+
+    // 角度 D 項追蹤 (用於 PD 控制)
+    float _lastAngle;
 };
 
 #endif
