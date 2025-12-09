@@ -1,6 +1,6 @@
 // behavior.cpp - 行為控制模組 (距離+角度 PD 控制)
-// 版本: 3.5
-// 日期: 2025-12-08
+// 版本: 3.8
+// 日期: 2025-12-09
 //
 // 核心邏輯：
 // 1. 沿牆：距離 P + 角度 PD 控制
@@ -33,6 +33,9 @@
 //   - 轉彎開始時 resetYaw() 歸零
 // v3.7: IMU 前後差值
 //   - 不做 resetYaw()，記錄開始時的 yaw，計算差值
+// v3.8: 參數微調
+//   - 左右輪獨立 base（BASE_PWM_L, BASE_PWM_R）
+//   - 右前距離保護改為線性+拋物線混合，15cm 附近就有修正
 
 #include "behavior.h"
 #include <Arduino.h>
@@ -82,8 +85,9 @@ MotorCommand BehaviorController::update(const SensorData& sensor) {
         if (angular > 0.15f) angular = 0.15f;
         if (angular < -0.15f) angular = -0.15f;
 
-        int leftPWM = (int)(BASE_PWM * (1.0f - angular));
-        int rightPWM = (int)(BASE_PWM * (1.0f + angular));
+        // v3.8: 左右輪獨立 base
+        int leftPWM = (int)(BASE_PWM_L * (1.0f - angular));
+        int rightPWM = (int)(BASE_PWM_R * (1.0f + angular));
         return {leftPWM, rightPWM, false};
     }
 
@@ -251,14 +255,14 @@ MotorCommand BehaviorController::_handleWallFollow(const SensorData& sensor) {
         float noWallWeight = (1.0f - rfNear) * (1.0f - rrNear);
         float noWallAngular = noWallWeight * (-SEARCH_ANGULAR);  // 負=右轉
 
-        // v3.3: 右前距離保護（15cm 內啟動，拋物線：越近修正越強）
+        // v3.8: 右前距離保護（15cm 內啟動，線性+拋物線混合）
         float rfDistAngular = 0;
         if (sensor.rightFront < 15) {
             float x = 15.0f - sensor.rightFront;
-            rfDistAngular = 0.0015f * x * x;  // 二次函數
-            if (rfDistAngular > 0.20f) rfDistAngular = 0.20f;  // 限幅
+            rfDistAngular = 0.002f * x + 0.001f * x * x;  // 線性+二次
+            if (rfDistAngular > 0.25f) rfDistAngular = 0.25f;  // 限幅
         }
-        // 效果：15cm→0, 10cm→0.04, 7cm→0.10, 5cm→0.15, 2cm→0.20
+        // 效果：15cm→0, 12cm→0.015, 10cm→0.035, 7cm→0.08, 5cm→0.12, 2cm→0.20
 
         // 右前近 + 右後遠 = 斜向靠近牆 → 左轉 (與 cornerWeight 對稱)
         float approachAngular = wallFoundWeight * 0.12f;  // 正=左轉
@@ -284,14 +288,11 @@ MotorCommand BehaviorController::_handleWallFollow(const SensorData& sensor) {
     if (angular > MAX_ANGULAR) angular = MAX_ANGULAR;
     if (angular < -MAX_ANGULAR) angular = -MAX_ANGULAR;
 
-    // 轉換 PWM
-    int basePWM = (int)(BASE_PWM * speedScale);
-    int leftPWM = (int)(basePWM * (1.0f - angular));
-    int rightPWM = (int)(basePWM * (1.0f + angular));
-
-    // 馬達校正
-    leftPWM = (int)(leftPWM * LEFT_SCALE);
-    rightPWM = (int)(rightPWM * RIGHT_SCALE);
+    // v3.8: 左右輪獨立 base，方便調參
+    int leftBase = (int)(BASE_PWM_L * speedScale);
+    int rightBase = (int)(BASE_PWM_R * speedScale);
+    int leftPWM = (int)(leftBase * (1.0f - angular));
+    int rightPWM = (int)(rightBase * (1.0f + angular));
 
     // 限幅
     if (leftPWM > 0 && leftPWM < MIN_PWM) leftPWM = MIN_PWM;

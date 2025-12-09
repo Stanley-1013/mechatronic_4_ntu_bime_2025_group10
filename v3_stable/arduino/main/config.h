@@ -59,12 +59,11 @@
 #define TURN_TIMEOUT        50      // 轉彎超時 (2.5秒)
 #define TURN_STABLE         12      // 穩定期 (600ms)
 
-// 馬達
-#define BASE_PWM        60      // 基礎 PWM
-#define TURN_PWM        55      // 原地轉彎 PWM
+// 馬達（左右獨立，方便調參）
+#define BASE_PWM_L      64      // 左輪直走 PWM
+#define BASE_PWM_R      77      // 右輪直走 PWM（目前偏右，待調整）
+#define TURN_PWM        70      // 轉彎 PWM
 #define MIN_PWM         45      // 最小有效 PWM
-#define LEFT_SCALE      1.0f    // 左輪比例 (調校用)
-#define RIGHT_SCALE     1.0f    // 右輪比例 (調校用)
 
 // 超時保護
 #define RUN_TIMEOUT     300000  // 5 分鐘
