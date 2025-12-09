@@ -55,7 +55,7 @@
 #define TURN_RIGHT_MIN      10.0f   // 轉彎完成：右側最小
 #define TURN_RIGHT_MAX      40.0f   // 轉彎完成：右側最大
 #define TURN_ANGLE_TOL      10.0f   // 轉彎完成：角度容許誤差 (度)
-#define TURN_MIN_TIME       6       // 轉彎最少時間 (300ms)
+#define TURN_TIME           24      // 左轉固定時間 (24 * 50ms = 1200ms)
 #define TURN_TIMEOUT        50      // 轉彎超時 (2.5秒)
 #define TURN_STABLE         12      // 穩定期 (600ms)
 

@@ -1,5 +1,5 @@
 // behavior.cpp - 行為控制模組 (距離+角度 PD 控制)
-// 版本: 3.8
+// 版本: 3.10
 // 日期: 2025-12-09
 //
 // 核心邏輯：
@@ -36,6 +36,13 @@
 // v3.8: 參數微調
 //   - 左右輪獨立 base（BASE_PWM_L, BASE_PWM_R）
 //   - 右前距離保護改為線性+拋物線混合，15cm 附近就有修正
+// v3.9: 簡化左轉（參考別組實測）
+//   - 改成固定時間 800ms + 只動右輪（左輪停）
+//   - 移除 IMU 角度判定（已註解）
+// v3.10: 沿牆改加減法 PD（參考別組）
+//   - 有牆時用 error = rightFront - rightRear
+//   - 加減法：L = base + output, R = base - output
+//   - 左轉時間 800ms → 1200ms
 
 #include "behavior.h"
 #include <Arduino.h>
@@ -107,19 +114,27 @@ MotorCommand BehaviorController::update(const SensorData& sensor) {
     return _handleWallFollow(sensor);
 }
 
-// ===== 轉彎控制 (v3.7: 只讀 IMU，計算前後差值) =====
+// ===== 轉彎控制 (v3.9: 固定時間 + 只動右輪，參考別組實測) =====
 MotorCommand BehaviorController::_handleTurning(const SensorData& sensor) {
     if (!_isTurning) {
         _isTurning = true;
         _turnTimer = 0;
-        _turnFromCorner = (sensor.rightFront < 20);  // 右前 <20cm = 角落
-        // v3.7: 記錄轉彎開始時的 yaw，不做 reset
-        if (_imu != nullptr) {
-            _turnStartYaw = _imu->getYaw();
-        }
+        // v3.9: 移除 IMU 相關
+        // _turnFromCorner = (sensor.rightFront < 20);
+        // if (_imu != nullptr) {
+        //     _turnStartYaw = _imu->getYaw();
+        // }
     }
 
     _turnTimer++;
+
+    // 固定時間 = 完成（捨棄前方暢通判斷）
+    if (_turnTimer >= TURN_TIME) {
+        _isTurning = false;
+        _stableTimer = TURN_STABLE;
+        return _handleWallFollow(sensor);
+    }
+    // 原本：&& sensor.front > TURN_FRONT_CLEAR
 
     // 超時保護
     if (_turnTimer > TURN_TIMEOUT) {
@@ -128,6 +143,10 @@ MotorCommand BehaviorController::_handleTurning(const SensorData& sensor) {
         return _handleWallFollow(sensor);
     }
 
+    // v3.9: 左轉 = 左輪停，右輪前進（參考別組實測 800ms）
+    return {0, TURN_PWM, false};
+
+    /* ===== v3.7 IMU 邏輯（已註解）=====
     // 最少轉彎時間 (300ms)
     if (_turnTimer < TURN_MIN_TIME) {
         return {-TURN_PWM, +TURN_PWM, false};
@@ -184,6 +203,7 @@ MotorCommand BehaviorController::_handleTurning(const SensorData& sensor) {
 
     // 繼續左轉
     return {-TURN_PWM, +TURN_PWM, false};
+    ===== END v3.7 ===== */
 }
 
 // ===== 沿牆控制 (距離+角度 PD 控制) =====
@@ -191,29 +211,37 @@ MotorCommand BehaviorController::_handleWallFollow(const SensorData& sensor) {
     float angular = 0;
 
     if (sensor.rightValid) {
-        // ===== 距離 + 角度 PD 控制 =====
-        // 距離誤差：正=太近，需左轉遠離
-        float distError = TARGET_DIST - sensor.rightAvg;
+        // ===== v3.10: 加減法 PD 控制（參考別組）=====
+        // error = 右前 - 右後：正=車頭朝牆，需左轉
+        float error = sensor.rightFront - sensor.rightRear;
+        float P = error * 0.8f;
+        float D = (error - _lastAngle) * 0.2f;
+        _lastAngle = error;
 
-        // v3.2: 緊急距離加強 - rightAvg < 10cm 時漸進加強 distTerm
-        float urgencyScale = 1.0f;
-        if (sensor.rightAvg < 10) {
-            urgencyScale = 1.0f + (10.0f - sensor.rightAvg) * 0.15f;
-            // 效果：10cm→1.0, 5cm→1.75, 2cm→2.2
+        float output = P + D;
+        if (output > 30) output = 30;
+        if (output < -30) output = -30;
+
+        int leftPWM = BASE_PWM_L + (int)output;
+        int rightPWM = BASE_PWM_R - (int)output;
+
+        // 前方減速
+        if (sensor.front < FRONT_SLOW) {
+            float scale = 0.5f + 0.5f * (sensor.front / FRONT_SLOW);
+            leftPWM = (int)(leftPWM * scale);
+            rightPWM = (int)(rightPWM * scale);
         }
 
-        // 角度誤差：正=車頭朝牆，需左轉
-        float angleError = sensor.angle - TARGET_ANGLE;
+        // 限幅
+        if (leftPWM < MIN_PWM) leftPWM = MIN_PWM;
+        if (rightPWM < MIN_PWM) rightPWM = MIN_PWM;
+        if (leftPWM > 255) leftPWM = 255;
+        if (rightPWM > 255) rightPWM = 255;
 
-        // 角度變化率 (D 項)：正=角度增加中(越來越朝牆)，需加強左轉
-        float angleDerivative = sensor.angle - _lastAngle;
-        _lastAngle = sensor.angle;
+        // 更新趨勢追蹤
+        _lastRightFront = sensor.rightFront;
 
-        // PD 控制
-        float distTerm = KP_DIST * distError * urgencyScale;
-        float angleTerm = KP_ANGLE * angleError + KD_ANGLE * angleDerivative;
-
-        angular = distTerm + angleTerm;
+        return {leftPWM, rightPWM, false};
 
     } else {
         // 右側無效 (rightValid=false，無法計算角度)
