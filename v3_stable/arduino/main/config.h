@@ -1,6 +1,10 @@
 #ifndef CONFIG_H
 #define CONFIG_H
 
+// ============ DEBUG 巨集 ============
+#define DEBUG_PRINT(x)    Serial.print(x)
+#define DEBUG_PRINTLN(x)  Serial.println(x)
+
 // ============ 腳位定義 ============
 // L298N 馬達驅動
 #define PIN_ENA     3   // 左輪 PWM
