@@ -62,7 +62,8 @@
 
 // 擺頭清掃 (v3.14: 角落轉彎前原地擺動)
 #define SWEEP_ANGLE         30.0f   // 擺頭角度 (度)
-#define SWEEP_PWM           50      // 擺頭 PWM (較慢，原地轉)
+#define SWEEP_PWM           70      // 擺頭 PWM (與轉彎相同)
+#define SWEEP_TIMEOUT       166     // 擺頭超時 (166 * 30ms ≈ 5秒)
 
 // 馬達（左右獨立，方便調參）
 #define BASE_PWM_L      64      // 左輪直走 PWM

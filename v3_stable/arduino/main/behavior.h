@@ -16,14 +16,12 @@ struct MotorCommand {
     bool stop;          // 是否停止
 };
 
-// v3.14: 擺頭清掃狀態
+// v3.14: 擺頭清掃狀態 (簡化版：右擺→回正→左轉)
 enum SweepPhase {
     SWEEP_NONE,         // 不擺頭
-    SWEEP_LEFT,         // 左擺 30°
-    SWEEP_BACK_CENTER,  // 回中
     SWEEP_RIGHT,        // 右擺 30°
-    SWEEP_BACK_START,   // 回起點
-    SWEEP_DONE          // 完成
+    SWEEP_BACK,         // 回正 (回到 0°)
+    SWEEP_DONE          // 完成，進入左轉
 };
 
 class BehaviorController {
@@ -49,6 +47,7 @@ private:
     bool _isSweeping;       // v3.14: 擺頭中
     SweepPhase _sweepPhase; // v3.14: 擺頭階段
     float _sweepStartYaw;   // v3.14: 擺頭起始 yaw
+    int _sweepTimer;        // v3.14: 擺頭計時器
     int _turnTimer;
     int _stableTimer;
     bool _complete;

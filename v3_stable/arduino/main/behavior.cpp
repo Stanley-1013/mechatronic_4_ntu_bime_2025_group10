@@ -17,6 +17,7 @@ void BehaviorController::init(MPU6050Sensor* imu) {
     _isSweeping = false;
     _sweepPhase = SWEEP_NONE;
     _sweepStartYaw = 0.0f;
+    _sweepTimer = 0;
     _turnTimer = 0;
     _stableTimer = 0;
     _complete = false;
@@ -64,10 +65,11 @@ MotorCommand BehaviorController::update(const SensorData& sensor) {
     if (_frontTriggerCount >= 2) {
         _turnFromCorner = (sensor.rightFront < 20);  // 右前 <20cm = 角落
 
-        // v3.14: 角落轉彎前先擺頭清掃
+        // v3.14: 角落轉彎前先右擺清掃
         if (_turnFromCorner) {
             _isSweeping = true;
-            _sweepPhase = SWEEP_LEFT;
+            _sweepPhase = SWEEP_RIGHT;
+            _sweepTimer = 0;
             if (_imu != nullptr) {
                 _sweepStartYaw = _imu->getYaw();
             }
@@ -83,11 +85,20 @@ MotorCommand BehaviorController::update(const SensorData& sensor) {
 }
 
 // ===== 擺頭清掃控制 (v3.14) =====
-// 流程：左擺30° → 回中 → 右擺30° → 回起點 → 進入轉彎
+// 流程：右擺30° → 回正 → 進入左轉
 MotorCommand BehaviorController::_handleSweeping(const SensorData& sensor) {
     if (_imu == nullptr) {
         // 無 IMU，跳過擺頭
         _isSweeping = false;
+        return _handleTurning(sensor);
+    }
+
+    _sweepTimer++;
+
+    // 超時保護 (5秒)
+    if (_sweepTimer > SWEEP_TIMEOUT) {
+        _isSweeping = false;
+        _sweepPhase = SWEEP_NONE;
         return _handleTurning(sensor);
     }
 
@@ -98,29 +109,15 @@ MotorCommand BehaviorController::_handleSweeping(const SensorData& sensor) {
     if (diff > 180) diff -= 360;
 
     switch (_sweepPhase) {
-        case SWEEP_LEFT:
-            // 左轉直到 +30°
-            if (diff >= SWEEP_ANGLE) {
-                _sweepPhase = SWEEP_BACK_CENTER;
-            }
-            return {-SWEEP_PWM, SWEEP_PWM, false};  // 原地左轉
-
-        case SWEEP_BACK_CENTER:
-            // 右轉回中 (diff ≈ 0)
-            if (diff <= 2.0f && diff >= -2.0f) {
-                _sweepPhase = SWEEP_RIGHT;
-            }
-            return {SWEEP_PWM, -SWEEP_PWM, false};  // 原地右轉
-
         case SWEEP_RIGHT:
             // 右轉直到 -30°
             if (diff <= -SWEEP_ANGLE) {
-                _sweepPhase = SWEEP_BACK_START;
+                _sweepPhase = SWEEP_BACK;
             }
             return {SWEEP_PWM, -SWEEP_PWM, false};  // 原地右轉
 
-        case SWEEP_BACK_START:
-            // 左轉回起點 (diff ≈ 0)
+        case SWEEP_BACK:
+            // 左轉回正 (diff ≈ 0)
             if (diff >= -2.0f && diff <= 2.0f) {
                 _sweepPhase = SWEEP_DONE;
             }
@@ -311,10 +308,15 @@ MotorCommand BehaviorController::_handleWallFollow(const SensorData& sensor) {
     int leftBase = (int)(BASE_PWM_L * speedScale);
     int rightBase = (int)(BASE_PWM_R * speedScale);
 
-    // v3.13: 不對稱修正 - 右修正(angular>0)時左輪加速 ×0.9，避免過衝
-    float leftAngular = (angular > 0) ? angular * 0.9f : angular;
+    // v3.13: 不對稱修正 - 右修正(angular>0)時左輪加速 ×0.95，避免過衝
+    float leftAngular = (angular > 0) ? angular * 0.95f : angular;
     int leftPWM = (int)(leftBase * (1.0f - leftAngular));
     int rightPWM = (int)(rightBase * (1.0f + angular));
+
+    // v3.14: 完全無牆時額外右偏（右輪減速）
+    if (!sensor.rightValid && sensor.rightFront > 40 && sensor.rightRear > 40) {
+        rightPWM -= 5;
+    }
 
     // 限幅
     if (leftPWM > 0 && leftPWM < MIN_PWM) leftPWM = MIN_PWM;
