@@ -43,11 +43,11 @@
 #define KP_DIST         0.10f   // 距離比例增益 (v3.13: 0.05→0.10 加強)
 #define KP_ANGLE        0.035f  // 角度比例增益 (v3.12: 0.02→0.035 加強)
 #define KD_ANGLE        0.02f   // 角度微分增益 (v3.12: 0.012→0.02 加強響應)
-#define MAX_ANGULAR     0.5f    // 最大轉向幅度 (v3.12: 0.4→0.5 放寬)
+#define MAX_ANGULAR     0.6f    // 最大轉向幅度 (v3.13: 0.5→0.6 放寬)
 #define SEARCH_ANGULAR  0.05f   // 找牆時的右弧線幅度 (非常輕微)
 
 // 前方避障
-#define FRONT_STOP      15.0f   // 觸發轉彎距離
+#define FRONT_STOP      16.0f   // 觸發轉彎距離
 #define FRONT_SLOW      30.0f   // 減速距離
 
 // 轉彎行為 (基於前方暢通 + 右側平行)
@@ -55,9 +55,14 @@
 #define TURN_RIGHT_MIN      10.0f   // 轉彎完成：右側最小
 #define TURN_RIGHT_MAX      40.0f   // 轉彎完成：右側最大
 #define TURN_ANGLE_TOL      10.0f   // 轉彎完成：角度容許誤差 (度)
+#define TURN_MIN_TIME       10      // 最少轉彎時間 (10 * 30ms = 300ms)
 #define TURN_TIME           24      // 左轉固定時間 (24 * 50ms = 1200ms)
-#define TURN_TIMEOUT        50      // 轉彎超時 (2.5秒)
+#define TURN_TIMEOUT        50      // 轉彎超時 (1.5秒)
 #define TURN_STABLE         12      // 穩定期 (600ms)
+
+// 擺頭清掃 (v3.14: 角落轉彎前原地擺動)
+#define SWEEP_ANGLE         30.0f   // 擺頭角度 (度)
+#define SWEEP_PWM           50      // 擺頭 PWM (較慢，原地轉)
 
 // 馬達（左右獨立，方便調參）
 #define BASE_PWM_L      64      // 左輪直走 PWM

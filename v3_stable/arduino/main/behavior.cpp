@@ -1,45 +1,12 @@
 // behavior.cpp - 行為控制模組 (距離+角度 PD 控制)
-// 版本: 3.12
-// 日期: 2025-12-09
+// 版本: 3.14
+// 日期: 2025-12-11
 //
 // 核心邏輯：
 // 1. 沿牆：距離 P + 角度 PD 控制
-// 2. 轉彎：IMU 判斷轉過 85~90 度 + 前方暢通 → 退出
-// 3. 找牆：使用連續函數 (軟閾值) 避免邊界抖動
-//
-// v2.8: 修正角度計算符號 (後-前)
-// v2.9: 調整無牆轉彎時間 600ms→400ms
-// v3.0: 三項修正
-//   - 轉彎退出簡化為純時間制 + 前方暢通
-//   - 前方觸發需連續 2 次確認
-//   - 沿牆加入角度 D 項控制
-// v3.1: 三項修正
-//   - 穩定期內重置 _frontTriggerCount（防止連續轉彎）
-//   - 右前 <15cm 漸進式左修正（防止斜向撞牆）
-//   - 新增 approachAngular 對稱左轉（右前近+右後遠）
-// v3.2: 兩項修正
-//   - KD_ANGLE 0.015→0.012 減少正常沿牆時的車頭晃動
-//   - rightAvg <10cm 時漸進加強 distTerm（緊急距離保護）
-// v3.3: 兩項修正
-//   - rfDistAngular 線性→拋物線（0.0015*x²，更強的近距離修正）
-//   - 角落轉彎補償暫時停用
-// v3.4: IMU 轉彎判定
-//   - 左轉時用 IMU 判斷角度，轉過 85~90 度 + 前方暢通即退出
-// v3.5: IMU 修正
-//   - 改為轉彎時才讀 IMU（resetYaw 歸零 + 轉彎中呼叫 update）
-//   - 非轉彎時不更新 IMU，避免積分誤差累積
-// v3.6: IMU 獨立更新
-//   - main.ino 50Hz 更新 IMU，behavior 只讀值
-//   - 轉彎開始時 resetYaw() 歸零
-// v3.7: IMU 前後差值
-//   - 不做 resetYaw()，記錄開始時的 yaw，計算差值
-// v3.8: 參數微調
-//   - 左右輪獨立 base（BASE_PWM_L, BASE_PWM_R）
-//   - 右前距離保護改為線性+拋物線混合，15cm 附近就有修正
-// v3.12: 簡化轉彎邏輯
-//   - 移除穩定期
-//   - 轉彎只看 IMU 角度，不看前方
-//   - 轉不夠就靠前方感測器再觸發
+// 2. 擺頭：角落轉彎前原地左右擺動清掃 (v3.14)
+// 3. 轉彎：IMU 判斷轉過 85~90 度 → 退出
+// 4. 找牆：使用連續函數 (軟閾值) 避免邊界抖動
 
 #include "behavior.h"
 #include <Arduino.h>
@@ -47,6 +14,9 @@
 void BehaviorController::init(MPU6050Sensor* imu) {
     _imu = imu;
     _isTurning = false;
+    _isSweeping = false;
+    _sweepPhase = SWEEP_NONE;
+    _sweepStartYaw = 0.0f;
     _turnTimer = 0;
     _stableTimer = 0;
     _complete = false;
@@ -73,20 +43,96 @@ MotorCommand BehaviorController::update(const SensorData& sensor) {
         return {0, 0, true};
     }
 
-    // ===== 優先級 1: 角落轉彎 =====
-    // 前方觸發連續確認 (防止雜訊誤觸發)
+    // ===== 優先級 0: 擺頭清掃 (v3.14) =====
+    if (_isSweeping) {
+        return _handleSweeping(sensor);
+    }
+
+    // ===== 優先級 1: 轉彎 =====
+    if (_isTurning) {
+        return _handleTurning(sensor);
+    }
+
+    // ===== 前方觸發連續確認 =====
     if (sensor.front <= FRONT_STOP) {
         _frontTriggerCount++;
     } else {
         _frontTriggerCount = 0;
     }
 
-    if (_isTurning || _frontTriggerCount >= 2) {
-        return _handleTurning(sensor);
+    // 前方觸發 → 判斷是否為角落轉彎
+    if (_frontTriggerCount >= 2) {
+        _turnFromCorner = (sensor.rightFront < 20);  // 右前 <20cm = 角落
+
+        // v3.14: 角落轉彎前先擺頭清掃
+        if (_turnFromCorner) {
+            _isSweeping = true;
+            _sweepPhase = SWEEP_LEFT;
+            if (_imu != nullptr) {
+                _sweepStartYaw = _imu->getYaw();
+            }
+            return _handleSweeping(sensor);
+        } else {
+            // 非角落，直接轉彎
+            return _handleTurning(sensor);
+        }
     }
 
     // ===== 優先級 2: 沿牆 =====
     return _handleWallFollow(sensor);
+}
+
+// ===== 擺頭清掃控制 (v3.14) =====
+// 流程：左擺30° → 回中 → 右擺30° → 回起點 → 進入轉彎
+MotorCommand BehaviorController::_handleSweeping(const SensorData& sensor) {
+    if (_imu == nullptr) {
+        // 無 IMU，跳過擺頭
+        _isSweeping = false;
+        return _handleTurning(sensor);
+    }
+
+    float currentYaw = _imu->getYaw();
+    float diff = currentYaw - _sweepStartYaw;
+    // 處理跨越 ±180
+    if (diff < -180) diff += 360;
+    if (diff > 180) diff -= 360;
+
+    switch (_sweepPhase) {
+        case SWEEP_LEFT:
+            // 左轉直到 +30°
+            if (diff >= SWEEP_ANGLE) {
+                _sweepPhase = SWEEP_BACK_CENTER;
+            }
+            return {-SWEEP_PWM, SWEEP_PWM, false};  // 原地左轉
+
+        case SWEEP_BACK_CENTER:
+            // 右轉回中 (diff ≈ 0)
+            if (diff <= 2.0f && diff >= -2.0f) {
+                _sweepPhase = SWEEP_RIGHT;
+            }
+            return {SWEEP_PWM, -SWEEP_PWM, false};  // 原地右轉
+
+        case SWEEP_RIGHT:
+            // 右轉直到 -30°
+            if (diff <= -SWEEP_ANGLE) {
+                _sweepPhase = SWEEP_BACK_START;
+            }
+            return {SWEEP_PWM, -SWEEP_PWM, false};  // 原地右轉
+
+        case SWEEP_BACK_START:
+            // 左轉回起點 (diff ≈ 0)
+            if (diff >= -2.0f && diff <= 2.0f) {
+                _sweepPhase = SWEEP_DONE;
+            }
+            return {-SWEEP_PWM, SWEEP_PWM, false};  // 原地左轉
+
+        case SWEEP_DONE:
+        default:
+            // 擺頭完成，進入轉彎
+            _isSweeping = false;
+            _sweepPhase = SWEEP_NONE;
+            return _handleTurning(sensor);
+    }
 }
 
 // ===== 轉彎控制 (v3.7: 只讀 IMU，計算前後差值) =====
@@ -237,20 +283,11 @@ MotorCommand BehaviorController::_handleWallFollow(const SensorData& sensor) {
         float noWallWeight = (1.0f - rfNear) * (1.0f - rrNear);
         float noWallAngular = noWallWeight * (-SEARCH_ANGULAR);  // 負=右轉
 
-        // v3.8: 右前距離保護（15cm 內啟動，線性+拋物線混合）
-        float rfDistAngular = 0;
-        if (sensor.rightFront < 15) {
-            float x = 15.0f - sensor.rightFront;
-            rfDistAngular = 0.002f * x + 0.001f * x * x;  // 線性+二次
-            if (rfDistAngular > 0.25f) rfDistAngular = 0.25f;  // 限幅
-        }
-        // 效果：15cm→0, 12cm→0.015, 10cm→0.035, 7cm→0.08, 5cm→0.12, 2cm→0.20
-
         // 右前近 + 右後遠 = 斜向靠近牆 → 左轉 (與 cornerWeight 對稱)
         float approachAngular = wallFoundWeight * 0.12f;  // 正=左轉
 
-        // 混合計算
-        angular = cornerWeight * (-0.12f) + approachAngular + wallFoundAngular + noWallAngular + rfDistAngular;
+        // 混合計算 (v3.13: 移除 rfDistAngular，避免轉彎後過度修正)
+        angular = cornerWeight * (-0.12f) + approachAngular + wallFoundAngular + noWallAngular;
 
         // 重置 D 項追蹤（無有效角度時）
         _lastAngle = 0.0f;
@@ -273,7 +310,10 @@ MotorCommand BehaviorController::_handleWallFollow(const SensorData& sensor) {
     // v3.8: 左右輪獨立 base，方便調參
     int leftBase = (int)(BASE_PWM_L * speedScale);
     int rightBase = (int)(BASE_PWM_R * speedScale);
-    int leftPWM = (int)(leftBase * (1.0f - angular));
+
+    // v3.13: 不對稱修正 - 右修正(angular>0)時左輪加速 ×0.9，避免過衝
+    float leftAngular = (angular > 0) ? angular * 0.9f : angular;
+    int leftPWM = (int)(leftBase * (1.0f - leftAngular));
     int rightPWM = (int)(rightBase * (1.0f + angular));
 
     // 限幅

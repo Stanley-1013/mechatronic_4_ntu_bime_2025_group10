@@ -1,6 +1,6 @@
 // behavior.h - 行為控制模組 (距離+角度 PD 控制)
-// 版本: 3.5
-// 日期: 2025-12-08
+// 版本: 3.14
+// 日期: 2025-12-11
 
 #ifndef BEHAVIOR_H
 #define BEHAVIOR_H
@@ -16,15 +16,27 @@ struct MotorCommand {
     bool stop;          // 是否停止
 };
 
+// v3.14: 擺頭清掃狀態
+enum SweepPhase {
+    SWEEP_NONE,         // 不擺頭
+    SWEEP_LEFT,         // 左擺 30°
+    SWEEP_BACK_CENTER,  // 回中
+    SWEEP_RIGHT,        // 右擺 30°
+    SWEEP_BACK_START,   // 回起點
+    SWEEP_DONE          // 完成
+};
+
 class BehaviorController {
 public:
     void init(MPU6050Sensor* imu);  // 傳入 IMU 指標
     MotorCommand update(const SensorData& sensor);
 
     bool isTurning() { return _isTurning; }
+    bool isSweeping() { return _isSweeping; }
     bool isComplete() { return _complete; }
 
 private:
+    MotorCommand _handleSweeping(const SensorData& sensor);  // v3.14: 擺頭清掃
     MotorCommand _handleTurning(const SensorData& sensor);
     MotorCommand _handleWallFollow(const SensorData& sensor);
 
@@ -34,6 +46,9 @@ private:
 
     // 狀態變數
     bool _isTurning;
+    bool _isSweeping;       // v3.14: 擺頭中
+    SweepPhase _sweepPhase; // v3.14: 擺頭階段
+    float _sweepStartYaw;   // v3.14: 擺頭起始 yaw
     int _turnTimer;
     int _stableTimer;
     bool _complete;
