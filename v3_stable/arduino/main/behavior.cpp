@@ -1,5 +1,5 @@
 // behavior.cpp - 行為控制模組 (距離+角度 PD 控制)
-// 版本: 3.10
+// 版本: 3.12
 // 日期: 2025-12-09
 //
 // 核心邏輯：
@@ -36,13 +36,10 @@
 // v3.8: 參數微調
 //   - 左右輪獨立 base（BASE_PWM_L, BASE_PWM_R）
 //   - 右前距離保護改為線性+拋物線混合，15cm 附近就有修正
-// v3.9: 簡化左轉（參考別組實測）
-//   - 改成固定時間 800ms + 只動右輪（左輪停）
-//   - 移除 IMU 角度判定（已註解）
-// v3.10: 沿牆改加減法 PD（參考別組）
-//   - 有牆時用 error = rightFront - rightRear
-//   - 加減法：L = base + output, R = base - output
-//   - 左轉時間 800ms → 1200ms
+// v3.12: 簡化轉彎邏輯
+//   - 移除穩定期
+//   - 轉彎只看 IMU 角度，不看前方
+//   - 轉不夠就靠前方感測器再觸發
 
 #include "behavior.h"
 #include <Arduino.h>
@@ -76,28 +73,6 @@ MotorCommand BehaviorController::update(const SensorData& sensor) {
         return {0, 0, true};
     }
 
-    // ===== 穩定期：轉彎後直走，不做大幅修正 =====
-    if (_stableTimer > 0) {
-        _stableTimer--;
-        _frontTriggerCount = 0;  // v3.1: 防止穩定期結束後立刻再轉彎
-        // 穩定期只做輕微角度修正
-        float angular = 0;
-        if (sensor.rightValid) {
-            angular = KP_ANGLE * sensor.angle * 0.5f;  // 半強度角度修正
-            // v3.3: 角落轉彎補償暫時停用測試
-            // if (_turnFromCorner) {
-            //     angular -= SEARCH_ANGULAR;  // 負 = 右轉靠近牆
-            // }
-        }
-        if (angular > 0.15f) angular = 0.15f;
-        if (angular < -0.15f) angular = -0.15f;
-
-        // v3.8: 左右輪獨立 base
-        int leftPWM = (int)(BASE_PWM_L * (1.0f - angular));
-        int rightPWM = (int)(BASE_PWM_R * (1.0f + angular));
-        return {leftPWM, rightPWM, false};
-    }
-
     // ===== 優先級 1: 角落轉彎 =====
     // 前方觸發連續確認 (防止雜訊誤觸發)
     if (sensor.front <= FRONT_STOP) {
@@ -114,42 +89,30 @@ MotorCommand BehaviorController::update(const SensorData& sensor) {
     return _handleWallFollow(sensor);
 }
 
-// ===== 轉彎控制 (v3.9: 固定時間 + 只動右輪，參考別組實測) =====
+// ===== 轉彎控制 (v3.7: 只讀 IMU，計算前後差值) =====
 MotorCommand BehaviorController::_handleTurning(const SensorData& sensor) {
     if (!_isTurning) {
         _isTurning = true;
         _turnTimer = 0;
-        // v3.9: 移除 IMU 相關
-        // _turnFromCorner = (sensor.rightFront < 20);
-        // if (_imu != nullptr) {
-        //     _turnStartYaw = _imu->getYaw();
-        // }
+        _turnFromCorner = (sensor.rightFront < 20);  // 右前 <20cm = 角落
+        // v3.7: 記錄轉彎開始時的 yaw，不做 reset
+        if (_imu != nullptr) {
+            _turnStartYaw = _imu->getYaw();
+        }
     }
 
     _turnTimer++;
 
-    // 固定時間 = 完成（捨棄前方暢通判斷）
-    if (_turnTimer >= TURN_TIME) {
-        _isTurning = false;
-        _stableTimer = TURN_STABLE;
-        return _handleWallFollow(sensor);
-    }
-    // 原本：&& sensor.front > TURN_FRONT_CLEAR
-
     // 超時保護
     if (_turnTimer > TURN_TIMEOUT) {
         _isTurning = false;
-        _stableTimer = TURN_STABLE;
         return _handleWallFollow(sensor);
     }
 
-    // v3.9: 左轉 = 左輪停，右輪前進（參考別組實測 800ms）
-    return {0, TURN_PWM, false};
-
-    /* ===== v3.7 IMU 邏輯（已註解）=====
     // 最少轉彎時間 (300ms)
     if (_turnTimer < TURN_MIN_TIME) {
-        return {-TURN_PWM, +TURN_PWM, false};
+        // v3.12: 單輪轉彎（左輪停，右輪動），更穩定
+        return {0, TURN_PWM, false};
     }
 
     // v3.7: 計算前後差值（左轉 yaw 減少，所以 start - current = 正值）
@@ -195,15 +158,14 @@ MotorCommand BehaviorController::_handleTurning(const SensorData& sensor) {
         }
     }
 
-    if (atCheckpoint && sensor.front > TURN_FRONT_CLEAR) {
+    // v3.12: 只看角度，不看前方（前方由 update() 優先級處理）
+    if (atCheckpoint) {
         _isTurning = false;
-        _stableTimer = TURN_STABLE;
         return _handleWallFollow(sensor);
     }
 
-    // 繼續左轉
-    return {-TURN_PWM, +TURN_PWM, false};
-    ===== END v3.7 ===== */
+    // 繼續左轉 (v3.12: 單輪轉彎)
+    return {0, TURN_PWM, false};
 }
 
 // ===== 沿牆控制 (距離+角度 PD 控制) =====
@@ -211,37 +173,29 @@ MotorCommand BehaviorController::_handleWallFollow(const SensorData& sensor) {
     float angular = 0;
 
     if (sensor.rightValid) {
-        // ===== v3.10: 加減法 PD 控制（參考別組）=====
-        // error = 右前 - 右後：正=車頭朝牆，需左轉
-        float error = sensor.rightFront - sensor.rightRear;
-        float P = error * 0.8f;
-        float D = (error - _lastAngle) * 0.2f;
-        _lastAngle = error;
+        // ===== 距離 + 角度 PD 控制 =====
+        // 距離誤差：正=太近，需左轉遠離
+        float distError = TARGET_DIST - sensor.rightAvg;
 
-        float output = P + D;
-        if (output > 30) output = 30;
-        if (output < -30) output = -30;
-
-        int leftPWM = BASE_PWM_L + (int)output;
-        int rightPWM = BASE_PWM_R - (int)output;
-
-        // 前方減速
-        if (sensor.front < FRONT_SLOW) {
-            float scale = 0.5f + 0.5f * (sensor.front / FRONT_SLOW);
-            leftPWM = (int)(leftPWM * scale);
-            rightPWM = (int)(rightPWM * scale);
+        // v3.2: 緊急距離加強 - rightAvg < 10cm 時漸進加強 distTerm
+        float urgencyScale = 1.0f;
+        if (sensor.rightAvg < 10) {
+            urgencyScale = 1.0f + (10.0f - sensor.rightAvg) * 0.15f;
+            // 效果：10cm→1.0, 5cm→1.75, 2cm→2.2
         }
 
-        // 限幅
-        if (leftPWM < MIN_PWM) leftPWM = MIN_PWM;
-        if (rightPWM < MIN_PWM) rightPWM = MIN_PWM;
-        if (leftPWM > 255) leftPWM = 255;
-        if (rightPWM > 255) rightPWM = 255;
+        // 角度誤差：正=車頭朝牆，需左轉
+        float angleError = sensor.angle - TARGET_ANGLE;
 
-        // 更新趨勢追蹤
-        _lastRightFront = sensor.rightFront;
+        // 角度變化率 (D 項)：正=角度增加中(越來越朝牆)，需加強左轉
+        float angleDerivative = sensor.angle - _lastAngle;
+        _lastAngle = sensor.angle;
 
-        return {leftPWM, rightPWM, false};
+        // PD 控制
+        float distTerm = KP_DIST * distError * urgencyScale;
+        float angleTerm = KP_ANGLE * angleError + KD_ANGLE * angleDerivative;
+
+        angular = distTerm + angleTerm;
 
     } else {
         // 右側無效 (rightValid=false，無法計算角度)

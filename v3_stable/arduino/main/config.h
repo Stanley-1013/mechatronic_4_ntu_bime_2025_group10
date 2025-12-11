@@ -30,7 +30,7 @@
 
 // ============ 控制參數 ============
 // 主迴圈
-#define LOOP_INTERVAL   50      // 50ms = 20Hz
+#define LOOP_INTERVAL   30      // 30ms = 33Hz (v3.12: 加快響應)
 
 // 超聲波
 #define US_TIMEOUT      8000    // 8ms 超時 (~136cm)
@@ -40,10 +40,10 @@
 // 沿牆行為 (距離 + 角度 PD 控制)
 #define TARGET_DIST     15.0f   // 目標右側距離 cm
 #define TARGET_ANGLE    0.0f    // 目標角度 (0 = 平行牆壁)
-#define KP_DIST         0.03f   // 距離比例增益
-#define KP_ANGLE        0.02f   // 角度比例增益 (度 → angular)
-#define KD_ANGLE        0.012f  // 角度微分增益 (預測趨勢) v3.2: 0.015→0.012 減少晃動
-#define MAX_ANGULAR     0.4f    // 最大轉向幅度
+#define KP_DIST         0.10f   // 距離比例增益 (v3.13: 0.05→0.10 加強)
+#define KP_ANGLE        0.035f  // 角度比例增益 (v3.12: 0.02→0.035 加強)
+#define KD_ANGLE        0.02f   // 角度微分增益 (v3.12: 0.012→0.02 加強響應)
+#define MAX_ANGULAR     0.5f    // 最大轉向幅度 (v3.12: 0.4→0.5 放寬)
 #define SEARCH_ANGULAR  0.05f   // 找牆時的右弧線幅度 (非常輕微)
 
 // 前方避障

@@ -28,25 +28,20 @@ void UltrasonicManager::init() {
 }
 
 void UltrasonicManager::update() {
-    // 輪流讀取，避免超音波互相干擾
+    // v3.12: 一次讀三個（順序讀取不會干擾）
     int val;
 
-    switch (_readIndex) {
-        case 0:
-            val = _readOne(PIN_FRONT_TRIG, PIN_FRONT_ECHO);
-            if (val > 0) _front = _filter(_histFront, val);
-            break;
-        case 1:
-            val = _readOne(PIN_RIGHT_F_TRIG, PIN_RIGHT_F_ECHO);
-            if (val > 0) _rightF = _filter(_histRightF, val);
-            break;
-        case 2:
-            val = _readOne(PIN_RIGHT_R_TRIG, PIN_RIGHT_R_ECHO);
-            if (val > 0) _rightR = _filter(_histRightR, val);
-            break;
-    }
+    // 前方
+    val = _readOne(PIN_FRONT_TRIG, PIN_FRONT_ECHO);
+    if (val > 0) _front = _filter(_histFront, val);
 
-    _readIndex = (_readIndex + 1) % 3;
+    // 右前
+    val = _readOne(PIN_RIGHT_F_TRIG, PIN_RIGHT_F_ECHO);
+    if (val > 0) _rightF = _filter(_histRightF, val);
+
+    // 右後
+    val = _readOne(PIN_RIGHT_R_TRIG, PIN_RIGHT_R_ECHO);
+    if (val > 0) _rightR = _filter(_histRightR, val);
 }
 
 SensorData UltrasonicManager::getData() {
