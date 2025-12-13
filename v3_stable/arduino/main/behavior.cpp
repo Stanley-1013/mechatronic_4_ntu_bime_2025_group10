@@ -1,9 +1,9 @@
-// behavior.cpp - 行為控制模組 (距離+角度 PD 控制)
-// 版本: 3.14
+// behavior.cpp - 行為控制模組 (純角度 PD 控制)
+// 版本: 3.15
 // 日期: 2025-12-11
 //
 // 核心邏輯：
-// 1. 沿牆：距離 P + 角度 PD 控制
+// 1. 沿牆：純角度 PD 控制，距離影響目標角度
 // 2. 擺頭：角落轉彎前原地左右擺動清掃 (v3.14)
 // 3. 轉彎：IMU 判斷轉過 85~90 度 → 退出
 // 4. 找牆：使用連續函數 (軟閾值) 避免邊界抖動
@@ -63,6 +63,7 @@ MotorCommand BehaviorController::update(const SensorData& sensor) {
 
     // 前方觸發 → 判斷是否為角落轉彎
     if (_frontTriggerCount >= 2) {
+        _frontTriggerCount = 0;  // v3.15: 清零，避免重複觸發
         _turnFromCorner = (sensor.rightFront < 20);  // 右前 <20cm = 角落
 
         // v3.14: 角落轉彎前先右擺清掃
@@ -211,34 +212,35 @@ MotorCommand BehaviorController::_handleTurning(const SensorData& sensor) {
     return {0, TURN_PWM, false};
 }
 
-// ===== 沿牆控制 (距離+角度 PD 控制) =====
+// ===== 沿牆控制 (v3.15: 純角度 PD，距離影響目標角度) =====
 MotorCommand BehaviorController::_handleWallFollow(const SensorData& sensor) {
     float angular = 0;
 
     if (sensor.rightValid) {
-        // ===== 距離 + 角度 PD 控制 =====
-        // 距離誤差：正=太近，需左轉遠離
+        // ===== v3.15: 純角度 PD 控制 =====
+        // 距離誤差：正=太近
         float distError = TARGET_DIST - sensor.rightAvg;
 
-        // v3.2: 緊急距離加強 - rightAvg < 10cm 時漸進加強 distTerm
-        float urgencyScale = 1.0f;
-        if (sensor.rightAvg < 10) {
-            urgencyScale = 1.0f + (10.0f - sensor.rightAvg) * 0.15f;
-            // 效果：10cm→1.0, 5cm→1.75, 2cm→2.2
-        }
+        // 目標角度 = 距離誤差 × 係數
+        // 太近(distError負) → 目標角度負 → 車頭朝外 → 遠離牆
+        // 太遠(distError正) → 目標角度正 → 車頭朝內 → 靠近牆
+        // 注意：distError = TARGET - actual，太近時 actual > TARGET，所以 distError < 0
+        float targetAngle = -distError * KP_DIST;  // 取負號修正方向
 
-        // 角度誤差：正=車頭朝牆，需左轉
-        float angleError = sensor.angle - TARGET_ANGLE;
+        // 限幅
+        if (targetAngle > MAX_TARGET_ANGLE) targetAngle = MAX_TARGET_ANGLE;
+        if (targetAngle < -MAX_TARGET_ANGLE) targetAngle = -MAX_TARGET_ANGLE;
 
-        // 角度變化率 (D 項)：正=角度增加中(越來越朝牆)，需加強左轉
+        // 角度誤差：當前角度 - 目標角度
+        // 正=車頭比目標更朝牆，需左轉
+        float angleError = sensor.angle - targetAngle;
+
+        // 角度變化率 (D 項)
         float angleDerivative = sensor.angle - _lastAngle;
         _lastAngle = sensor.angle;
 
-        // PD 控制
-        float distTerm = KP_DIST * distError * urgencyScale;
-        float angleTerm = KP_ANGLE * angleError + KD_ANGLE * angleDerivative;
-
-        angular = distTerm + angleTerm;
+        // 純角度 PD 控制
+        angular = KP_ANGLE * angleError + KD_ANGLE * angleDerivative;
 
     } else {
         // 右側無效 (rightValid=false，無法計算角度)

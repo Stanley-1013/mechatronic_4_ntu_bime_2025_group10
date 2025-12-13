@@ -1,1 +1,7 @@
 __pycache__/
+
+# Skill-seeker configs (MCP tool generated)
+configs/
+
+# Research/reference materials (external docs scraped by skill-seeker)
+output/

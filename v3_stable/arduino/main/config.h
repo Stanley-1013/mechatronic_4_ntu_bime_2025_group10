@@ -37,13 +37,13 @@
 #define US_MIN_VALID    2       // 最小有效值 cm
 #define US_MAX_VALID    200     // 最大有效值 cm
 
-// 沿牆行為 (距離 + 角度 PD 控制)
+// 沿牆行為 (v3.15: 純角度 PD，距離影響目標角度)
 #define TARGET_DIST     15.0f   // 目標右側距離 cm
-#define TARGET_ANGLE    0.0f    // 目標角度 (0 = 平行牆壁)
-#define KP_DIST         0.10f   // 距離比例增益 (v3.13: 0.05→0.10 加強)
-#define KP_ANGLE        0.035f  // 角度比例增益 (v3.12: 0.02→0.035 加強)
-#define KD_ANGLE        0.02f   // 角度微分增益 (v3.12: 0.012→0.02 加強響應)
-#define MAX_ANGULAR     0.6f    // 最大轉向幅度 (v3.13: 0.5→0.6 放寬)
+#define KP_DIST         0.5f    // 距離→目標角度 (7cm差=3.5°目標角度)
+#define KP_ANGLE        0.04f   // 角度比例增益 (v3.15: 0.035→0.04)
+#define KD_ANGLE        0.02f   // 角度微分增益
+#define MAX_TARGET_ANGLE 10.0f  // 目標角度限幅 (度)
+#define MAX_ANGULAR     0.6f    // 最大轉向幅度
 #define SEARCH_ANGULAR  0.05f   // 找牆時的右弧線幅度 (非常輕微)
 
 // 前方避障
