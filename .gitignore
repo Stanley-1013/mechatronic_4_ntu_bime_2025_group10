@@ -5,3 +5,7 @@ configs/
 
 # Research/reference materials (external docs scraped by skill-seeker)
 output/
+
+# Claude Code / Neuromorphic system files
+CLAUDE.md
+.claude/
